@@ -1,0 +1,27 @@
+namespace entityplus{
+
+template <class... Components, class... Tags>
+template <class Component, typename... Args>
+std::pair<Component&, bool> 
+EntityManager<ComponentList<Components...>, TagList<Tags...>>
+::addComponent(MyEntity &entity, Args&&... args) {
+
+}
+
+template <class... Components, class... Tags>
+template <class Component>
+bool
+EntityManager<ComponentList<Components...>, TagList<Tags...>>
+::removeComponent(MyEntity &entity) {
+
+}
+
+template <class... Components, class... Tags>
+template <class Tag>
+bool
+EntityManager<ComponentList<Components...>, TagList<Tags...>>
+::setTag(MyEntity &entity, bool set) {
+
+}
+
+}
