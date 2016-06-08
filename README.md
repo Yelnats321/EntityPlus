@@ -1,5 +1,5 @@
 # EntityPlus
-EntityPlus is an Entity Component System written in C++11, offering fast compilation and runtime speeds (to be benchmarked). There are no external dependencies, and the library is header only, saving you the trouble of fidgeting with build systems.
+EntityPlus is an Entity Component System written in C++11, offering fast compilation and runtime speeds (to be benchmarked). The only external dependency is `boost` (specifically `boost::variant` and `boost:pool`), and the library is header only, saving you the trouble of fidgeting with build systems.
 
 An Entity Component System is an attempt to decouple data from mechanics. In doing so, it lets you create objects out of building blocks that mesh together to create a whole. It models a has-a relationship, letting you expand without worrying about dependency trees and inheritence. The three main aspects of an ECS are of course Entities, Components, and Systems.
 
