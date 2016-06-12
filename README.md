@@ -70,27 +70,7 @@ It would be unfair to go with option 1. What if `C` also attacks and kills `A`? 
 
 A similair question is raised with removing components. Since a system operates on a list of entities that all have the components it requires, removing components would cause the system to malfunction. Therefore, we delay removing components until some later time aswell.
 
-How about adding entities and adding components? Suppose we have two coupled `System`s, called `SysA` and `SysB`. `SysB` relies on data that `SysA` prepares for it, operating on similair `Component` requirements to it. However, through some process we add a component to some entity that `SysB` requries while in the middle of executing `SysA`s `loop`.
-```c++
-void SysA::loop(/*args*/) {
-    auto ents = getEntities<Component1>();
-    // work on ents
-    ...
-    // in the middle of the function
-    EntA.addComponent<Component1>();
-    ...
-}
-```
-Since this happened in the middle of `SysA`s execution, `ents` doesn't contain `EntA`. However, when we enter `SysB`s loop, it does.
-```c++
-void SysB::loop(/*args*/) {
-    //ents contains EntA
-    auto ents = getEntities<Component1>();
-    // work on ents
-    ...
-}
-```
-Now, since `SysB` relies on `SysA` to prep data for each entity, `EntA`s data is in an undefined and invalid state. A similair argument can be raised with creating new entities.
+How about adding entities and adding components? Let's say we have an `AI` system that controls our NPCs. Two NPCs are fighting, `A`, and `B`. The `AI` system works with `A` first. It sees that `A`s health is dipping low, so it activates a Potion of Invulnerability. `A`s turn now over, it works with `B`. `B` chooses to strike `A`. Without the invulnerability's effect on `A`, `A` would surely die. However, this is not the case as `A` activated the potion! But what if the order of resolution was reversed. What if `B` attacked `A` before `A` had time to activate the potion? The resolution of both scenarios should be the same: `A` should die. To accomplish this, the component that models `Invlunerability` is only added to the local instance of `A`. This change is only propogated troughout the `EntityManager` at a later time.
 
 We can either limit the interactions of systems, or we can limit when changes to entities occur. EntityPlus opts to do the latter. Any changes to `EntityManager` are gated by a call to `EntityManager::step()`. Between two `step()` calls, all calls to `EntityManager::getEntities()` will behave the same. That means that adding a component to an entity, or even creating an entity, will not show up until you call `step()`. However, you are still able to manipulate the new component (and entity).
 
@@ -98,13 +78,16 @@ For example:
 ```c++
 auto ent = entityManager.addEntity();
 auto ents = entityManager.getEntities<>(); //ents does not contain ent
-ent.addComponent<Component1>();
+auto compPair = ent.addComponent<Component1>();
 auto ents2 = entityManager.getEntities<Component1>(); //ents2 does not contain ent
-auto comp = ent.getComponent<Component1>(); //ok, the component already exists
+auto comp = compPair.first; //ok, the component already exists
 comp.foo = "bar"; //ok too
+assert(ent.hasComponent<Component1>() == false);
 entityManager.step();
 auto ents = entityManager.getEntities<>();
 auto ents2 = entityManager.getEntities<Component1>(); //ents and ents2 now both contain ent
 ```
 
-This way, all systems will on the same set of data, regardless of entity addition, deletion, or component addition/deletion. Of course, components are still persistent and affected in real time, so modifying them is not gated by `step()`.
+This way, all systems will work on the same set of data, regardless of entity addition, deletion, or component addition/deletion. Of course, components are still persistent and affected in real time, so modifying them is not gated by `step()`.
+
+You may notice that even though we added a component to the entity, the change isn't even propogated locally. The reasoning is that we should gurantee the invariance of data between two `step()` calls regardless of where the entity came from. That is to say, an `Entity` we created and modified vs an `Entity` from `getEntities()` should behave exactly the same between two `step()` calls. 
