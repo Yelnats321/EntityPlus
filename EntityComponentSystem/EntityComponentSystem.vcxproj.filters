@@ -21,6 +21,12 @@
     <ClInclude Include="metafunctions.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="TypeList.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Exception.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Entity.impl">

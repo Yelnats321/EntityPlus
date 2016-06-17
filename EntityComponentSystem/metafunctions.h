@@ -1,5 +1,6 @@
 #pragma once
 #include <tuple>
+#include <bitset>
 
 namespace entityplus {
 namespace meta {
@@ -78,20 +79,22 @@ struct tuple_index<T, std::tuple<T, Ts...>> {
 
 template <typename T, typename U, typename... Ts>
 struct tuple_index<T, std::tuple<U, Ts...>> {
-	static constexpr auto value = 1 + is_tuple_unique<T, std::tuple<Ts...>>::value;
+	static constexpr auto value = 1 + tuple_index<T, std::tuple<Ts...>>::value;
 };
 
 template <typename... Ts>
-struct type_bitset : std::bitset<sizeof...(Ts)> {
+struct type_bitset : private std::bitset<sizeof...(Ts)> {
 	template <typename T>
+	//should be decltype(auto)
 	auto at() const {
 		return operator[tuple_index<T, std::tuple<Ts...>>::value];
 	}
 
 	template <typename T>
+	//should be decltype(auto)
 	auto at() {
 		return operator[tuple_index<T, std::tuple<Ts...>>::value];
 	}
 };
-}
-}
+}//namespace meta
+}//namespace entityplus

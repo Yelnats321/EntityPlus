@@ -1,11 +1,41 @@
-namespace entityplus{
+template <class... Components, class... Tags>
+void 
+EntityManager<ComponentList<Components...>, TagList<Tags...>>
+::assertEntity(const MyEntity &entity) {
+	if (entity.entityManager_ != this) {
+		throw bad_entity_exception("Entity not owned by this manager. It is possible that the manager may have moved.");
+	}
+	if (entity.version_ != version_) {
+		throw bad_entity_exception("Entity version not the same as Managers. Don't reuse Entitites between step() calls");
+	}
+	if (entity.id_ >= entities_.size()) {
+		throw bad_entity_exception("Entity ID is invalid. Please submit a bug (this shouldn't happen).");
+	}
+}
 
 template <class... Components, class... Tags>
 template <class Component, typename... Args>
 std::pair<Component&, bool> 
 EntityManager<ComponentList<Components...>, TagList<Tags...>>
 ::addComponent(MyEntity &entity, Args&&... args) {
-
+	assertEntity(entity);
+	bool oldValue = entity.components_.at<Component>();
+	entity.components_.at<Component>() = true;
+	auto & container = detail::get<MyCompList, Component>(components_);
+	// will use insert_or_assign once C++17 support rolls around, maybe
+	auto it = container.find(entity.id_);
+	std::pair<std::reference_wrapper<Component>, bool> ret;
+	if (it == container.end()) {
+		ret.first = *container.emplace(std::forward<Args>(args)...).first;
+		ret.second = true;
+		// Do something to queue up these changes for step()
+	}
+	else {
+		*it = Component(std::forward<Args>(args)...);
+		ret.first = *it;
+		ret.second = false;
+	}
+	return ret;
 }
 
 template <class... Components, class... Tags>
@@ -13,7 +43,9 @@ template <class Component>
 bool
 EntityManager<ComponentList<Components...>, TagList<Tags...>>
 ::removeComponent(MyEntity &entity) {
-
+	assertEntity(entity);
+	entity.components_.at<Component>() = false;
+	return false;
 }
 
 template <class... Components, class... Tags>
@@ -21,7 +53,13 @@ template <class Tag>
 bool
 EntityManager<ComponentList<Components...>, TagList<Tags...>>
 ::setTag(MyEntity &entity, bool set) {
-
+	return false;
 }
 
+template <class... Components, class... Tags>
+typename EntityManager<ComponentList<Components...>, TagList<Tags...>>::MyEntity
+EntityManager<ComponentList<Components...>, TagList<Tags...>>
+::createEntity() {
+	entities_.emplace_back(entities_.size(), version_, this);
+	return entities_.back();
 }

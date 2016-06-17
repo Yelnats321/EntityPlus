@@ -143,7 +143,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
+    <ClInclude Include="Exception.h" />
     <ClInclude Include="metafunctions.h" />
+    <ClInclude Include="TypeList.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Entity.impl" />

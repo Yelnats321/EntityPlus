@@ -2,22 +2,12 @@
 
 #include <unordered_map>
 #include <unordered_set>
-//#include <vector>
-#include <bitset>
-#include <stdexcept>
+#include <vector>
+#include <cstdint>
+
+#include "TypeList.h"
 
 namespace entityplus {
-
-using EntityID = std::size_t;
-
-namespace detail {
-using EntityVersion = std::size_t;
-}
-
-class invalid_component : public std::logic_error {
-public:
-	using std::logic_error::logic_error;
-};
 
 template <class Components, class Tags>
 class EntityManager {
@@ -27,25 +17,7 @@ class EntityManager {
 template <class Components, class Tags>
 class Entity {
 	static_assert(meta::delay<Components, Tags>::value,
-				  "Don't create Entities manually, use EntityManager::createEntity instead");
-};
-
-template <typename... Ts>
-struct TagList {
-	template <typename T>
-	struct containerType : public std::unordered_set<EntityID> {};
-	using type = std::tuple<containerType<Ts>...>;
-	static_assert(meta::is_tuple_unique<std::tuple<Ts...>>::value, "TagList must be unique");
-	static constexpr auto size = sizeof...(Ts);
-};
-
-template <typename... Ts>
-struct ComponentList {
-	template <typename T>
-	using containerType = std::unordered_map<EntityID, T>;
-	using type = std::tuple<containerType<Ts>...>;
-	static_assert(meta::is_tuple_unique<std::tuple<Ts...>>::value, "ComponentList must be unique");
-	static constexpr auto size = sizeof...(Ts);
+				  "Don't create Entities manually, use EntityManager::createEntity() instead");
 };
 
 template <class... Components, class... Tags>
@@ -55,13 +27,15 @@ class Entity<ComponentList<Components...>, TagList<Tags...>> {
 	using MyEntityManager = EntityManager<MyCompList, MyTagList>;
 	friend MyEntityManager;
 
-	EntityID id_;
-	detail::EntityVersion version_;
+	using EntityVersion = std::uintmax_t;
+
+	detail::EntityID id_;
+	EntityVersion version_;
 	MyEntityManager * entityManager_;
 	meta::type_bitset<Components...> components_;
 	meta::type_bitset<Tags...> tags_;
 
-	Entity(EntityID id, detail::EntityVersion version, MyEntityManager* entityManager):
+	Entity(detail::EntityID id, EntityVersion version, MyEntityManager* entityManager):
 		id_(id), version_(version), entityManager_(entityManager) {}
 public:
 	template <class Component>
@@ -70,6 +44,7 @@ public:
 	}
 
 	// Returns the component, and if it was added or not (in the case it already exists)
+	// If the component already exists, we reassign it to the new one created from the args
 	template <class Component, typename... Args>
 	std::pair<Component&, bool> addComponent(Args&&... args) {
 		return entityManager_->addComponent<Component>(*this, std::forward<Args>(args)...);
@@ -104,7 +79,6 @@ public:
 	}
 };
 
-
 template <class... Components, class... Tags>
 class EntityManager<ComponentList<Components...>, TagList<Tags...>> {
 	using MyCompList = ComponentList<Components...>;
@@ -119,18 +93,39 @@ class EntityManager<ComponentList<Components...>, TagList<Tags...>> {
 				  >
 	>::value, "ComponentList and TagList must not intersect");
 
+	using EntityContainer = std::vector<MyEntity>;
+
+	typename MyEntity::EntityVersion version_;
+	typename MyCompList::type components_;
+	EntityContainer entities_;
+	// can't use iterator because of invalidation
+	typename EntityContainer::size_type newEntitiesItr_ = 0;
+	
+
+	void assertEntity(const MyEntity &entity);
+
 	template <class Component, typename... Args>
 	std::pair<Component&, bool> addComponent(MyEntity &entity, Args&&... args);
 
 	template <class Component>
 	bool removeComponent(MyEntity &entity);
 
+	template <class Component>
+	Component & getComponent(const MyEntity &entity);
+
+	template <class Component>
+	const Component & getComponent(const MyEntity &entity) const;
+
 	template <class Tag>
 	bool setTag(MyEntity &entity, bool set);
 public:
-	using EntityContainer = std::vector<Entity>;
+	using EntityContainer = std::vector<MyEntity>;
 
 	EntityManager() = default;
+	EntityManager(const EntityManager &) = delete;
+	EntityManager & operator = (const EntityManager &) = delete;
+	EntityManager(EntityManager &&) = default;
+	EntityManager & operator = (EntityManager &&) = default;
 
 	// The entity is valid immediatly
 	MyEntity createEntity();
@@ -138,7 +133,7 @@ public:
 	// The entity remains valid until step() is called
 	void deleteEntity(const MyEntity &);
 
-	// Deletes all entities and updates all internal structures
+	// Executes all queued changes and updates all internal structures
 	// Entities from before this point are considered invalid (but are not checked)
 	void step();
 
