@@ -1,26 +1,41 @@
 #pragma once
+#include <boost/container/flat_set.hpp>
+#include <boost/container/flat_map.hpp>
 
 namespace entityplus {
 namespace detail {
-	using EntityID = std::size_t;
+	using EntityID = std::uintmax_t;
+	using EntityVersion = std::uintmax_t;
 }
 
 template <typename... Ts>
 struct TagList {
-	template <typename T>
-	struct containerType : public std::unordered_set<detail::EntityID> {};
-	using type = std::tuple<containerType<Ts>...>;
 	static_assert(meta::is_tuple_unique<std::tuple<Ts...>>::value, "TagList must be unique");
+
+	template <typename T>
+	struct ContainerType : public boost::container::flat_set<detail::EntityID> {};
+	using type = std::tuple<ContainerType<Ts>...>;
+
 	static constexpr auto size = sizeof...(Ts);
+	template <typename T>
+	static ContainerType<T> get(type &t) {
+		return std::get<ContainerType<T>>(t);
+	}
 };
 
 template <typename... Ts>
 struct ComponentList {
-	template <typename T>
-	using containerType = std::unordered_map<detail::EntityID, T>;
-	using type = std::tuple<containerType<Ts>...>;
 	static_assert(meta::is_tuple_unique<std::tuple<Ts...>>::value, "ComponentList must be unique");
-	static constexpr auto size = sizeof...(Ts);
+
+	template <typename T>
+	using ContainerType = boost::container::flat_map<detail::EntityID, T>;
+	using type = std::tuple<ContainerType<Ts>...>;
+
+	static constexpr auto size = sizeof...(Ts);	
+	template <typename T>
+	static ContainerType<T> get(type &t) {
+		return std::get<ContainerType<T>>(t);
+	}
 };
 
 }

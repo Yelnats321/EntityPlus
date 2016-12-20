@@ -61,8 +61,8 @@ struct is_tuple_unique<std::tuple<>> : std::true_type {};
 template <typename T, typename... Ts>
 struct is_tuple_unique<std::tuple<T, Ts...>> :
 	type_and<
-	type_not<tuple_has_type<T, std::tuple<Ts...>> >,
-	is_tuple_unique<std::tuple<Ts...>>
+		type_not<tuple_has_type<T, std::tuple<Ts...>> >,
+		is_tuple_unique<std::tuple<Ts...>>
 	> {};
 
 /* -----------------------
@@ -82,17 +82,19 @@ struct tuple_index<T, std::tuple<U, Ts...>> {
 	static constexpr auto value = 1 + tuple_index<T, std::tuple<Ts...>>::value;
 };
 
+/* -----------------------
+** type_bitset
+** -----------------------
+*/
 template <typename... Ts>
 struct type_bitset : private std::bitset<sizeof...(Ts)> {
 	template <typename T>
-	//should be decltype(auto)
-	auto at() const {
+	decltype(auto) at() const {
 		return operator[tuple_index<T, std::tuple<Ts...>>::value];
 	}
 
 	template <typename T>
-	//should be decltype(auto)
-	auto at() {
+	decltype(auto) at() {
 		return operator[tuple_index<T, std::tuple<Ts...>>::value];
 	}
 };
