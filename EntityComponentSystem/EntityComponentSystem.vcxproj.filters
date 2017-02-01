@@ -15,27 +15,30 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Entity.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="metafunctions.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="TypeList.h">
+    <ClInclude Include="typelist.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Exception.h">
+    <ClInclude Include="exception.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Entity.impl">
+    <ClInclude Include="entity.h">
       <Filter>Source Files</Filter>
-    </None>
+    </ClInclude>
+    <ClInclude Include="event.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="entity.impl">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
