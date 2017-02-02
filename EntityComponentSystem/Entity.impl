@@ -213,13 +213,14 @@ auto ENTITY_MANAGER_SPEC::get_entities() -> return_container {
 		[&](const std::false_type &) {
 		auto smallestIdx = get_smallest_idx<Ts...>();
 
-		return_container ret{entityCount_[smallestIdx].begin(), entityCount_[smallestIdx].end()};
+		return_container ret;
+		ret.reserve(entityCount_[smallestIdx].size());
 
 		auto key = meta::make_key<meta::typelist<Ts...>, comp_tag_t>();
 
-		for (auto it = ret.begin(); it != ret.end();) {
-			if ((it->compTags_ & key) != key) it = ret.erase(it);
-			else ++it;
+		for (auto it = entityCount_[smallestIdx].begin(); it != entityCount_[smallestIdx].end(); ++it) {
+			if ((it->compTags_ & key) == key)
+				ret.push_back(*it);
 		}
 		return ret; },
 		meta::fail_cond<TypelistUnique>([](auto delay) {
