@@ -99,6 +99,6 @@ set_tag = O(n)
 Entity Manager:
 create_entity = O(n)
 remove_entity = O(n)
-get_entities = O(n^2) // should be optimized
+get_entities = O(n)
 for_each = O(n)
 ```
