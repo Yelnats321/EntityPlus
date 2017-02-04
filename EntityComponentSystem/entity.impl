@@ -252,7 +252,7 @@ template<typename... Ts, typename Func>
 void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 	using Typelist = meta::typelist<Ts...>;
 	using ComponentsPart = meta::typelist_intersection_t<Typelist, component_t>;
-	using IsFunc = std::is_constructible<std::function<detail::func_sig<entity_t, ComponentsPart>::type>, Func>;
+	using IsFunc = std::is_constructible<std::function<typename detail::func_sig<entity_t, ComponentsPart>::type>, Func>;
 	using TypelistUnique = meta::is_typelist_unique<Typelist>;
 	using TypelistValid = meta::and_all<meta::typelist_has_type<Ts, comp_tag_t>...>;
 	meta::eval_if(
