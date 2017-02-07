@@ -159,7 +159,7 @@ bool ENTITY_MANAGER_SPEC::set_tag(entity_t &entity, bool set) {
 ENTITY_MANAGER_TEMPS
 auto ENTITY_MANAGER_SPEC::create_entity() -> entity_t {
 	assert(std::numeric_limits<detail::entity_id_t>::max() != currentId_);
-	auto emp = entities_.emplace(currentId_++, this);
+	auto emp = entities_.emplace(entity_t::private_access{}, currentId_++, this);
 	assert(emp.second);
 
 	return *emp.first;
@@ -204,6 +204,33 @@ std::size_t ENTITY_MANAGER_SPEC::get_smallest_idx() {
 	});
 }
 
+namespace detail {
+inline void assign_true() {}
+
+template <typename T, typename... Ts>
+inline void assign_true(T && t, Ts&&...ts) {
+	t = true;
+	assign_true(std::forward<Ts>(ts)...);
+}
+
+template <typename T, typename U>
+struct make_key_impl;
+
+template <typename... Ts, typename... Us>
+struct make_key_impl<meta::typelist<Ts...>, meta::typelist<Us...>> {
+	auto operator()() const {
+		meta::type_bitset<meta::typelist<Us...>> ret;
+		assign_true(meta::get<Ts>(ret)...);
+		return ret;
+	}
+};
+
+template <typename T, typename U>
+auto make_key() {
+	return make_key_impl<T, U>{}();
+}
+}
+
 ENTITY_MANAGER_TEMPS
 template<typename... Ts>
 auto ENTITY_MANAGER_SPEC::get_entities() -> return_container {
@@ -216,7 +243,7 @@ auto ENTITY_MANAGER_SPEC::get_entities() -> return_container {
 		return_container ret;
 		ret.reserve(entityCount_[smallestIdx].size());
 
-		auto key = meta::make_key<meta::typelist<Ts...>, comp_tag_t>();
+		auto key = detail::make_key<meta::typelist<Ts...>, comp_tag_t>();
 
 		for (auto it = entityCount_[smallestIdx].begin(); it != entityCount_[smallestIdx].end(); ++it) {
 			if ((it->compTags_ & key) == key)
@@ -259,7 +286,7 @@ void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 		[&](const std::false_type &) {
 		auto smallestIdx = get_smallest_idx<Ts...>();
 		auto iters = detail::make_iters<component_list_t, ComponentsPart>{}(components_);
-		auto key = meta::make_key<Typelist, comp_tag_t>();
+		auto key = detail::make_key<Typelist, comp_tag_t>();
 		for (const auto &ent : entityCount_[smallestIdx]) {
 			if ((ent.compTags_ & key) != key) continue;
 			meta::for_each(iters, [&](auto &iter, std::size_t) {

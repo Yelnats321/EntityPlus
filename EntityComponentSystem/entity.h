@@ -38,14 +38,13 @@ class entity<component_list<Components...>, tag_list<Tags...>> {
 	using entity_manager_t = entity_manager<component_list_t, tag_list_t>;
 
 	friend entity_manager_t;
+	struct private_access {};
 
 	detail::entity_id_t id_;
 	entity_manager_t *entityManager_;
 	meta::type_bitset<comp_tag_t> compTags_;
 public:
-	// DO NOT CREATE YOUR OWN ENTITIES
-	// THEY ARE EXPOSED FOR INTERNAL USE ONLY
-	entity(detail::entity_id_t id, entity_manager_t *entityManager):
+	entity(private_access, detail::entity_id_t id, entity_manager_t *entityManager):
 		id_(id), entityManager_(entityManager) {}
 
 	template <typename Component>
@@ -128,7 +127,6 @@ public:
 	inline bool operator==(const entity &other) const {
 		return id_ == other.id_;
 	}
-	friend struct std::hash<entity>;
 };
 }
 
@@ -214,15 +212,6 @@ public:
 		errorCallback = std::move(cb);
 	}
 #endif
-};
-}
-
-namespace std {
-template <typename Components, typename Tags>
-struct hash<entityplus::detail::entity<Components, Tags>> {
-	size_t operator()(const entityplus::detail::entity<Components, Tags> & e) const {
-		return static_cast<size_t>(e.id_);
-	}
 };
 }
 

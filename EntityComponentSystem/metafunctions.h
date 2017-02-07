@@ -38,7 +38,7 @@ void deref_and_invoke_impl(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> 
 template <typename Func, typename Func2, typename T, typename... Ts>
 void deref_and_invoke(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iters) {
 	deref_and_invoke_impl(std::forward<Func>(func), std::forward<Func2>(func2),
-						  std::forward<T>(t), iters, std::make_index_sequence<sizeof...(Ts)>{});
+						  std::forward<T>(t), iters, std::index_sequence_for<Ts...>{});
 }
 
 /* -----------------------
@@ -159,13 +159,11 @@ using typelist_intersection_t = typename typelist_intersection<T, U>::type;
 ** -----------------------
 */
 
-template <std::size_t I = 0, typename Func, typename... Ts>
-typename std::enable_if_t<I == sizeof...(Ts), void>
-constexpr inline for_each(std::tuple<Ts...> &, Func&&){}
+template <std::size_t I = 0, typename Func, typename... Ts, std::enable_if_t<(I == sizeof...(Ts))>* = 0>
+constexpr inline void for_each(std::tuple<Ts...> &, Func&&) {}
 
-template <std::size_t I = 0, typename Func, typename... Ts>
-typename std::enable_if_t<I < sizeof...(Ts), void>
-constexpr inline for_each(std::tuple<Ts...>& t, Func&& f) {
+template <std::size_t I = 0, typename Func, typename... Ts, std::enable_if_t<(I < sizeof...(Ts))>* = 0>
+constexpr inline void for_each(std::tuple<Ts...>& t, Func&& f) {
 	f(std::get<I>(t), I);
 	for_each<I + 1, Func, Ts...>(t, std::forward<Func>(f));
 }
@@ -175,6 +173,7 @@ constexpr inline for_each(std::tuple<Ts...>& t, Func&& f) {
 ** -----------------------
 */
 
+namespace detail {
 template <std::size_t N>
 struct tag: tag<N - 1> {};
 
@@ -187,8 +186,6 @@ struct fail_cond_t {
 	Func func;
 };
 
-namespace detail {
-
 template <typename T, typename... Ts,
 	typename Pred = typename std::decay_t<T>::pred_type,
 	typename = std::enable_if_t<std::is_base_of<std::false_type, Pred>::value>>
@@ -200,18 +197,17 @@ template <typename T, typename... Ts>
 decltype(auto) get_success(tag<0>, T&&, Ts&&... ts) {
 	return get_success(tag<1>{}, std::forward<Ts>(ts)...);
 }
-
 }
 
 template <typename Pred, typename Func>
-fail_cond_t<Pred, Func> fail_cond(Func&& func) {
+detail::fail_cond_t<Pred, Func> fail_cond(Func&& func) {
 	return{std::forward<Func>(func)};
 }
 
 template <typename Func, typename... Preds, typename... Funcs>
-decltype(auto) eval_if(Func&& success, fail_cond_t<Preds, Funcs>&&... fcs) {
+decltype(auto) eval_if(Func&& success, detail::fail_cond_t<Preds, Funcs>&&... fcs) {
 	auto &&rt = detail::get_success(
-		tag<1>{},
+		detail::tag<1>{},
 		std::move(fcs)...,
 		fail_cond<std::false_type>(std::forward<Func>(success)));
 	using pred_type = typename std::decay_t<decltype(rt)>::pred_type;
@@ -239,11 +235,10 @@ decltype(auto) get(const Tuple &t) {
 */
 
 template <typename Tuple>
-struct type_bitset;
+class type_bitset;
 
 template <typename... Ts>
-struct type_bitset<typelist<Ts...>>: private std::bitset<sizeof...(Ts)> {
-private:
+class type_bitset<typelist<Ts...>>: private std::bitset<sizeof...(Ts)> {
 	using underlying_type = std::bitset<sizeof...(Ts)>;
 	type_bitset(underlying_type && ut): underlying_type(std::move(ut)) {}
 public:
@@ -271,31 +266,6 @@ decltype(auto) get(const type_bitset<typelist<Ts...>> & ts) {
 template <typename T, typename... Ts>
 decltype(auto) get(type_bitset<typelist<Ts...>> & ts) {
 	return ts[typelist_index_v<T, typelist<Ts...>>];
-}
-
-inline void assign_one() {}
-
-template <typename T, typename... Ts>
-inline void assign_one(T && t, Ts&&...ts) {
-	t = 1;
-	assign_one(std::forward<Ts>(ts)...);
-}
-
-template <typename T, typename U>
-struct make_key_impl;
-
-template <typename... Ts, typename... Us>
-struct make_key_impl<typelist<Ts...>, typelist<Us...>> {
-	auto operator()() const {
-		type_bitset<typelist<Us...>> ret;
-		assign_one(get<Ts>(ret)...);
-		return ret;
-	}
-};
-
-template <typename T, typename U>
-auto make_key() {
-	return make_key_impl<T, U>{}();
 }
 
 template <typename T>
