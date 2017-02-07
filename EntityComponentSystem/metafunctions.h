@@ -2,6 +2,7 @@
 #include <tuple>
 #include <bitset>
 #include <type_traits>
+#include <initializer_list>
 
 namespace entityplus {
 namespace meta {
@@ -27,18 +28,6 @@ using and_ = std::integral_constant<bool, T::value && U::value>;
 template <typename T>
 const T& as_const(T &t) {
 	return t;
-}
-
-template <typename Func, typename Func2, typename T, typename... Ts, std::size_t... Is>
-void deref_and_invoke_impl(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iters,
-						   std::index_sequence<Is...>) {
-	func(std::forward<T>(t), func2(std::get<Is>(iters))...);
-}
-
-template <typename Func, typename Func2, typename T, typename... Ts>
-void deref_and_invoke(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iters) {
-	deref_and_invoke_impl(std::forward<Func>(func), std::forward<Func2>(func2),
-						  std::forward<T>(t), iters, std::index_sequence_for<Ts...>{});
 }
 
 /* -----------------------
@@ -159,13 +148,16 @@ using typelist_intersection_t = typename typelist_intersection<T, U>::type;
 ** -----------------------
 */
 
-template <std::size_t I = 0, typename Func, typename... Ts, std::enable_if_t<(I == sizeof...(Ts))>* = 0>
-constexpr inline void for_each(std::tuple<Ts...> &, Func&&) {}
+namespace detail {
+template <typename Func, typename... Ts, std::size_t... Is>
+inline void for_each_impl(std::tuple<Ts...> &tup, Func &&func, std::index_sequence<Is...>) {
+	std::initializer_list<int> _ = {((void)func(std::get<Is>(tup), Is), 0)...};
+}
+}
 
-template <std::size_t I = 0, typename Func, typename... Ts, std::enable_if_t<(I < sizeof...(Ts))>* = 0>
-constexpr inline void for_each(std::tuple<Ts...>& t, Func&& f) {
-	f(std::get<I>(t), I);
-	for_each<I + 1, Func, Ts...>(t, std::forward<Func>(f));
+template <typename Func, typename... Ts>
+inline void for_each(std::tuple<Ts...> &tup, Func&& func) {
+	detail::for_each_impl(tup, std::forward<Func>(func), std::index_sequence_for<Ts...>{});
 }
 
 /* -----------------------

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <functional>
+#include <initializer_list>
 
 namespace entityplus {
 
@@ -205,14 +206,6 @@ std::size_t ENTITY_MANAGER_SPEC::get_smallest_idx() {
 }
 
 namespace detail {
-inline void assign_true() {}
-
-template <typename T, typename... Ts>
-inline void assign_true(T && t, Ts&&...ts) {
-	t = true;
-	assign_true(std::forward<Ts>(ts)...);
-}
-
 template <typename T, typename U>
 struct make_key_impl;
 
@@ -220,7 +213,7 @@ template <typename... Ts, typename... Us>
 struct make_key_impl<meta::typelist<Ts...>, meta::typelist<Us...>> {
 	auto operator()() const {
 		meta::type_bitset<meta::typelist<Us...>> ret;
-		assign_true(meta::get<Ts>(ret)...);
+		std::initializer_list<bool> _ = {(meta::get<Ts>(ret) = true)...};
 		return ret;
 	}
 };
@@ -272,6 +265,18 @@ template <typename T, typename... Us> struct make_iters<T, meta::typelist<Us...>
 		return std::make_tuple(meta::get<Us, T>(c).begin()...);
 	}
 };
+
+template <typename Func, typename Func2, typename T, typename... Ts, std::size_t... Is>
+void deref_and_invoke_impl(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iters,
+						   std::index_sequence<Is...>) {
+	func(std::forward<T>(t), func2(std::get<Is>(iters))...);
+}
+
+template <typename Func, typename Func2, typename T, typename... Ts>
+void deref_and_invoke(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iters) {
+	deref_and_invoke_impl(std::forward<Func>(func), std::forward<Func2>(func2),
+						  std::forward<T>(t), iters, std::index_sequence_for<Ts...>{});
+}
 }
 
 ENTITY_MANAGER_TEMPS
@@ -292,7 +297,7 @@ void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 			meta::for_each(iters, [&](auto &iter, std::size_t) {
 				while (iter->first < ent.id_) ++iter;
 			});
-			meta::deref_and_invoke(func,
+			detail::deref_and_invoke(func,
 								   [](auto &iter) -> auto &  { return iter->second; },
 								   ent, iters);
 		}},
