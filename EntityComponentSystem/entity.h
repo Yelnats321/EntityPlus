@@ -40,18 +40,18 @@ class entity<component_list<Components...>, tag_list<Tags...>> {
 	friend entity_manager_t;
 	struct private_access {};
 
-	detail::entity_id_t id_;
-	entity_manager_t *entityManager_;
-	meta::type_bitset<comp_tag_t> compTags_;
+	detail::entity_id_t id;
+	entity_manager_t *entityManager;
+	meta::type_bitset<comp_tag_t> compTags;
 public:
 	entity(private_access, detail::entity_id_t id, entity_manager_t *entityManager):
-		id_(id), entityManager_(entityManager) {}
+		id(id), entityManager(entityManager) {}
 
 	template <typename Component>
 	inline bool has_component() const noexcept {
 		using ValidComp = meta::typelist_has_type<Component, component_t>;
 		return meta::eval_if(
-			[&](auto) { return meta::get<Component>(compTags_); },
+			[&](auto) { return meta::get<Component>(compTags); },
 			meta::fail_cond<ValidComp>([](auto delay) {
 			static_assert(delay, "has_component called with invalid component");
 			return false;
@@ -63,7 +63,7 @@ public:
 	inline std::pair<Component&, bool> add_component(Args&&... args) {
 		using ValidComp = meta::typelist_has_type<Component, component_t>;
 		return meta::eval_if(
-			[&](const std::false_type &) { return entityManager_->template add_component<Component>(*this, std::forward<Args>(args)...); },
+			[&](const std::false_type &) { return entityManager->template add_component<Component>(*this, std::forward<Args>(args)...); },
 			meta::fail_cond<ValidComp>([](auto delay) {
 			static_assert(delay, "add_component called with invalid component");
 			return std::declval<std::pair<Component&, bool>>();
@@ -75,7 +75,7 @@ public:
 	inline bool remove_component() {
 		using ValidComp = meta::typelist_has_type<Component, component_t>;
 		return meta::eval_if(
-			[&](auto) { return entityManager_->template remove_component<Component>(*this); },
+			[&](auto) { return entityManager->template remove_component<Component>(*this); },
 			meta::fail_cond<ValidComp>([](auto delay) {
 			static_assert(delay, "remove_component called with invalid component");
 			return false;
@@ -87,7 +87,7 @@ public:
 	inline const Component& get_component() const {
 		using ValidComp = meta::typelist_has_type<Component, component_t>;
 		return meta::eval_if(
-			[&](auto) -> decltype(auto) { return entityManager_->template get_component<Component>(*this); },
+			[&](auto) -> decltype(auto) { return entityManager->template get_component<Component>(*this); },
 			meta::fail_cond<ValidComp>([](auto delay) {
 			static_assert(delay, "get_component called with invalid component");
 			return std::declval<const Component &>();
@@ -103,7 +103,7 @@ public:
 	inline bool has_tag() const noexcept {
 		using ValidTag = meta::typelist_has_type<Tag, meta::typelist<Tags...>>;
 		return meta::eval_if(
-			[&](auto) { return meta::get<Tag>(compTags_); },
+			[&](auto) { return meta::get<Tag>(compTags); },
 			meta::fail_cond<ValidTag>([](auto delay) {
 			static_assert(delay, "has_tag called with invalid tag");
 			return false;
@@ -115,17 +115,17 @@ public:
 	inline bool set_tag(bool set) {
 		using ValidTag = meta::typelist_has_type<Tag, meta::typelist<Tags...>>;
 		return meta::eval_if(
-			[&](auto) { return entityManager_->template set_tag<Tag>(*this, set); },
+			[&](auto) { return entityManager->template set_tag<Tag>(*this, set); },
 			meta::fail_cond<ValidTag>([](auto delay) {
 			static_assert(delay, "set_tag called with invalid tag");
 			return false;
 		}));
 	}
 	inline bool operator<(const entity &other) const {
-		return id_ < other.id_;
+		return id < other.id;
 	}
 	inline bool operator==(const entity &other) const {
-		return id_ == other.id_;
+		return id == other.id;
 	}
 };
 }
@@ -149,11 +149,10 @@ class entity_manager<component_list<Components...>, tag_list<Tags...>> {
 	constexpr static auto TagCount = sizeof...(Tags);
 	constexpr static auto CompTagCount = ComponentCount + TagCount;
 
-	detail::entity_id_t currentId_ = 0;
-	//detail::EntityVersion version_;
-	typename component_list_t::type components_;
-	entity_container entities_;
-	std::array<entity_container, CompTagCount> entityCount_;
+	detail::entity_id_t currentId = 0;
+	typename component_list_t::type components;
+	entity_container entities;
+	std::array<entity_container, CompTagCount> entityCount;
 #if !NDEBUG
 	const entity_t & assert_entity(const entity_t &entity) const;
 	entity_t & assert_entity(const entity_t &entity) {
