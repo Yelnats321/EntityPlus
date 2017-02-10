@@ -4,11 +4,12 @@ EntityPlus is an Entity Component System written in C++14, offering fast compila
 An Entity Component System is an attempt to decouple data from mechanics. In doing so, it lets you create objects out of building blocks that mesh together to create a whole. It models a has-a relationship, letting you expand without worrying about dependency trees and inheritence. The three main aspects of an ECS are of course Entities, Components, and Systems.
 
 ###Components
-Components contain information. This can be anything, such as health, a peice of armor, or a status effect. An example component could be the identity of a person, which could be modeled like this:
+Components contain information. This can be anything, such as health, a piece of armor, or a status effect. An example component could be the identity of a person, which could be modeled like this:
 ```c++
 struct identity {
     std::string name_;
     int age_;
+    identity(std::string name, int age) : name_(name), age_(age) {}
 };
 ```
 Components don't have to be aggregate types, they can be as complicated as they need to be. For example, if we wanted a health component that would only let you heal to a maximum health, we could do it like this:
@@ -33,11 +34,11 @@ using CompList = component_list<identity, health>;
 using TagList = tag_list<>;
 entity_manager<CompList, TagList> entityManager;
 ```
-Don't be scared by the syntax. Since we don't rely on inheritence or CRTP, we must give the `entity_manager` the a list of components we will use with it, as well as a list of tags. Don't worry about tags, we'll cover those later. To create a list of components, we simply use a `component_list`. `component_list`s and `tag_list`s have to be unique, and the `component_list` and `tag_list` can't have overlapping types. You'll be told about this via compiler error.
+Don't be scared by the syntax. Since we don't rely on inheritance or CRTP, we must give the `entity_manager` the list of components we will use with it, as well as a list of tags. Don't worry about tags, we'll cover those later. To create a list of components, we simply use a `component_list`. `component_list`s and `tag_list`s have to be unique, and the `component_list` and `tag_list` can't have overlapping types. You'll be told about this via compiler error.
 ```c++
 error C2338: ComponentList must be unique
 ```
-Not so bad right? EntityPlus is designed with the end user in mind, attempting to achieve as little template errors as possible. Almost all template errors will be reported in a simple and concise manner, with minimal errors as the end goal. With `c++17` most code will switch over to using `constexpr if` for errors, which will reduce the error callstack even further.
+Not so bad, right? EntityPlus is designed with the end user in mind, attempting to achieve as little template errors as possible. Almost all template errors will be reported in a simple and concise manner, with minimal errors as the end goal. With `c++17` most code will switch over to using `constexpr if` for errors, which will reduce the error callstack even further.
 
 Now that we have a manager, we can create an actual entity.
 ```c++
@@ -49,7 +50,7 @@ auto retId = entity.addComponent<identity>("John", 25);
 retId.first.name_ = "Smith";
 entity.addComponent<health>(100, 100);
 ```
-It's quite similair to using `vector::emplace`, because the function forwards it's args to the constructor. What gets returned is a `pair<component&, bool>`, which contains the component you just added, and a `bool` indicating if you overwrote the previous component. We don't hold on to the return of `create_entity()` for long. In fact, storing a stale entity is incorrect, as modifying the entity invalidates all references to it. You'll be treated with a runtime error if you use a stale entity.
+It's quite similar to using `vector::emplace`, because the function forwards it's args to the constructor. What gets returned is a `pair<component&, bool>`, which contains the component you just added, and a `bool` indicating if you overwrote the previous component. We don't hold on to the return of `create_entity()` for long. In fact, storing a stale entity is incorrect, as modifying the entity invalidates all references to it. You'll be treated with a runtime error if you use a stale entity.
 
 ###Systems
 The last thing we want to do is manipulate our entities. Unlike some ECS frameworks, EntityPlus doesn't have a system manager or similar device. You can work with the entities in one of two ways. The first is querying for a list of them by type
@@ -67,10 +68,10 @@ entityManager.for_each<identity>([](auto ent, auto &id) {
     std::cout << id.name << "\n";
 }
 ```
-That's about it! You can obviously wrap these methods in your own system classes, but having specific support for systems felt artifical and didn't add any impactful or useful changes to the flow of usage.
+That's about it! You can obviously wrap these methods in your own system classes, but having specific support for systems felt artificial and didn't add any impactful or useful changes to the flow of usage.
 
 ###Tags
-Tags are like components that have no data. They are simply a typename(and don't even have to be complete types) that is attached to an entity. An example could be a player tag for the entity that is controlled by a player. Tags can be used in any way a component is, but since there is no value associated with it except if it exists or not, it can only be toggled.
+Tags are like components that have no data. They are simply a typename (and don't even have to be complete types) that is attached to an entity. An example could be a player tag for the entity that is controlled by a player. Tags can be used in any way a component is, but since there is no value associated with it except if it exists or not, it can only be toggled.
 
 ```c++
 ent.set_tag<player_tag>(true);
@@ -78,13 +79,13 @@ assert(ent.get_tag<player_tag>() == true);
 ```
 
 ###Events
-Events are diagonal to ECS, but when used in conjunction they create better decoupled code. You can register an event handler and also dispatch an event which informs all the handlers.
+Events are orthogonal to ECS, but when used in conjunction they create better decoupled code. You can register an event handler and also dispatch an event which informs all the handlers.
 
 ###Exceptions and Error Codes
-EntityPlus can be configured to use either exceptions or error codes.
+EntityPlus can be configured to use either exceptions or error codes. The two types of exceptions are `invalid_component` and `bad_entity`, with corresponding error codes. The former is thrown when `get_component()` is called for an entity that does not own a component of that type. The latter is thrown when an entity is stale, belongs to another entity manager, or when the entity has already been deleted. These three states can be queried by `get_status()` which returns a corresponding `entity_status`.
 
 ###Performance
-EntityPlus was designed with performance in mind. Almost all information is stored contigously (through `flat_map`s and `flat_set`s) and the code has been optimized for iteration(over insertion/deletion) as that is the most common operation when using ECS. Here are the big O analysis of the functions.
+EntityPlus was designed with performance in mind. Almost all information is stored contiguously (through `flat_map`s and `flat_set`s) and the code has been optimized for iteration (over insertion/deletion) as that is the most common operation when using ECS. Here are the big O analyses of the functions.
 
 ```c++
 n = amount of entities

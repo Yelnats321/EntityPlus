@@ -17,7 +17,7 @@ void ENTITY_MANAGER_SPEC::report_error(error_code_t errCode, const char * msg) c
 #else
 	switch (errCode) {
 	case entityplus::error_code_t::BAD_ENTITY:
-		throw bad_entity_exception(msg);
+		throw bad_entity(msg);
 	case entityplus::error_code_t::INVALID_COMPONENT:
 		throw invalid_component(msg);
 	}

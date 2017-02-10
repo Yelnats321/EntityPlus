@@ -13,7 +13,7 @@ enum class error_code_t {
 
 #ifndef ENTITYPLUS_NO_EXCEPTIONS
 
-struct bad_entity_exception : std::logic_error {
+struct bad_entity : std::logic_error {
 	using std::logic_error::logic_error;
 };
 
