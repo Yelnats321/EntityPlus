@@ -10,27 +10,58 @@ template <typename... CTs, typename... TTs>
 #define ENTITY_MANAGER_SPEC \
 entity_manager<component_list<CTs...>, tag_list<TTs...>>
 
+ENTITY_MANAGER_TEMPS
+void ENTITY_MANAGER_SPEC::report_error(error_code_t errCode, const char * msg) const {
+#ifdef ENTITYPLUS_NO_EXCEPTIONS
+	handle_error(errCode, msg);
+#else
+	switch (errCode) {
+	case entityplus::error_code_t::BAD_ENTITY:
+		throw bad_entity_exception(msg);
+	case entityplus::error_code_t::INVALID_COMPONENT:
+		throw invalid_component(msg);
+	}
+#endif
+}
+
+ENTITY_MANAGER_TEMPS
+auto ENTITY_MANAGER_SPEC::get_status(const entity_t &entity) const -> std::pair<const entity_t*, entity_status> {
+	if (entity.entityManager != this)
+		return{nullptr, entity_status::INVALID_MANAGER};
+
+	auto local = entities.find(entity);
+	if (local == entities.end())
+		return{nullptr, entity_status::NOT_FOUND};
+
+	if (entity.compTags != local->compTags)
+		return{nullptr, entity_status::STALE};
+
+	return{&*local, entity_status::OK};
+}
+
 #if !NDEBUG
 ENTITY_MANAGER_TEMPS
-auto ENTITY_MANAGER_SPEC::assert_entity(const entity_t &entity) const -> const entity_t& {
-	if (entity.entityManager != this) {
-#ifdef ENTITYPLUS_NO_EXCEPTIONS
-		handle_error(error_code_t::BAD_ENTITY);
-#else
-		throw bad_entity_exception("Entity not owned by this manager. It is possible that the manager may have moved.");
-#endif
+auto ENTITY_MANAGER_SPEC::assert_entity(const entity_t &entity) const -> const entity_t&{
+	auto entStatus = get_status(entity);
+	switch (entStatus.second) {
+	case entity_status::INVALID_MANAGER:
+		report_error(error_code_t::BAD_ENTITY,
+					 "Entity not owned by this manager");
+		break;
+	case entity_status::NOT_FOUND:
+		report_error(error_code_t::BAD_ENTITY,
+					 "Entity can't be found in manager. Are you sure it's valid?");
+		break;
+	case entity_status::STALE:
+		report_error(error_code_t::BAD_ENTITY,
+					 "Entity's components/tags are stale. Don't store stale entities");
+		break;
+	case entity_status::OK:
+		return *entStatus.first;
 	}
-	auto ent = entities.find(entity);
-	if (ent == entities.end()) {
-#ifdef ENTITYPLUS_NO_EXCEPTIONS
-		handle_error(error_code_t::BAD_ENTITY);
-#else
-		throw bad_entity_exception("Entity can't be found in manager. Are you sure it's valid?");
-#endif
-	}
-	return *ent;
 }
 #endif
+
 ENTITY_MANAGER_TEMPS
 template <typename T>
 void ENTITY_MANAGER_SPEC::add_bit(entity_t &local, entity_t &foreign) {
@@ -126,11 +157,8 @@ const Component& ENTITY_MANAGER_SPEC::get_component(const entity_t &entity) cons
 #endif
 	assert(meta::get<Component>(entity.compTags) == meta::get<Component>(myEnt.compTags));
 	if (!meta::get<Component>(entity.compTags)) {
-#ifdef ENTITYPLUS_NO_EXCEPTIONS
-		handle_error(error_code_t::INVALID_COMPONENT);
-#else
-		throw invalid_component<Component>("Tried to get a component the entity does not have");
-#endif
+		report_error(error_code_t::INVALID_COMPONENT,
+					 "Tried to get a component the entity does not have");
 	}
 
 	const auto &container = meta::get<Component, component_list_t>(components);
@@ -227,6 +255,7 @@ auto make_key() {
 ENTITY_MANAGER_TEMPS
 template<typename... Ts>
 auto ENTITY_MANAGER_SPEC::get_entities() -> return_container {
+	using IsEmpty = std::integral_constant<bool, sizeof...(Ts) != 0>;
 	using TypelistUnique = meta::is_typelist_unique<meta::typelist<Ts...>>;
 	using TypelistValid = meta::and_all<meta::typelist_has_type<Ts, comp_tag_t>...>;
 	return meta::eval_if(
@@ -243,6 +272,7 @@ auto ENTITY_MANAGER_SPEC::get_entities() -> return_container {
 				ret.push_back(*it);
 		}
 		return ret; },
+		meta::fail_cond<IsEmpty>([&](auto) {return return_container{entities.begin(), entities.end()}; }),
 		meta::fail_cond<TypelistUnique>([](auto delay) {
 		static_assert(delay, "get_entitites called with a non-unique typelist");
 		return std::declval<return_container>(); }),
@@ -282,6 +312,7 @@ void deref_and_invoke(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iter
 ENTITY_MANAGER_TEMPS
 template<typename... Ts, typename Func>
 void ENTITY_MANAGER_SPEC::for_each(Func && func) {
+	using IsEmpty = std::integral_constant<bool, sizeof...(Ts) != 0>;
 	using Typelist = meta::typelist<Ts...>;
 	using ComponentsPart = meta::typelist_intersection_t<Typelist, component_t>;
 	using IsFunc = std::is_constructible<std::function<typename detail::func_sig<entity_t, ComponentsPart>::type>, Func>;
@@ -298,16 +329,16 @@ void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 				while (iter->first < ent.id) ++iter;
 			});
 			detail::deref_and_invoke(func,
-								   [](auto &iter) -> auto &  { return iter->second; },
-								   ent, iters);
+									 [](auto &iter) -> auto &  { return iter->second; },
+									 ent, iters);
 		}},
 		meta::fail_cond<TypelistUnique>([](auto delay) {
 		static_assert(delay, "for_each called with a non-unique typelist");}),
 		meta::fail_cond<TypelistValid>([](auto delay) {
 		static_assert(delay, "for_each called with invalid typelist");}),
 		meta::fail_cond<IsFunc>([](auto delay) {
-		static_assert(delay, "for_each called with invalid callable");
-	}));
+		static_assert(delay, "for_each called with invalid callable");}),
+		meta::fail_cond<IsEmpty>([&](auto) { for (const auto &ent : entities) func(ent); }));
 }
 
 #undef ENTITY_MANAGER_TEMPS

@@ -6,9 +6,6 @@
 #include <boost/container/flat_map.hpp>
 #include <cstdint>
 
-#include <unordered_map>
-#include <unordered_set>
-
 namespace entityplus {
 namespace detail {
 	using entity_id_t = std::uintmax_t;
@@ -31,5 +28,4 @@ struct component_list {
 	using container_type = boost::container::flat_map<detail::entity_id_t, T>;
 	using type = std::tuple<container_type<Ts>...>;
 };
-
 }

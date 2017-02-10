@@ -21,6 +21,13 @@ class entity_manager {
 				  "The template parameters must be of type component_list and tag_list");
 };
 
+enum class entity_status {
+	INVALID_MANAGER,
+	NOT_FOUND,
+	STALE,
+	OK
+};
+
 namespace detail {
 template <typename Components, typename Tags>
 class entity {
@@ -46,6 +53,10 @@ class entity<component_list<Components...>, tag_list<Tags...>> {
 public:
 	entity(private_access, detail::entity_id_t id, entity_manager_t *entityManager):
 		id(id), entityManager(entityManager) {}
+
+	entity_status get_status() const {
+		return entityManager->get_status(*this).second;
+	}
 
 	template <typename Component>
 	inline bool has_component() const noexcept {
@@ -121,6 +132,7 @@ public:
 			return false;
 		}));
 	}
+
 	inline bool operator<(const entity &other) const {
 		return id < other.id;
 	}
@@ -138,7 +150,7 @@ class entity_manager<component_list<Components...>, tag_list<Tags...>> {
 	using tag_list_t = tag_list<Tags...>;
 	using tag_t = meta::typelist<Tags...>;
 	using comp_tag_t = meta::typelist<Components..., Tags...>;
- 	using entity_t = detail::entity<component_list_t, tag_list_t>;
+	using entity_t = detail::entity<component_list_t, tag_list_t>;
 	friend entity_t;
 	using entity_container = boost::container::flat_set<entity_t>;
 
@@ -153,6 +165,10 @@ class entity_manager<component_list<Components...>, tag_list<Tags...>> {
 	typename component_list_t::type components;
 	entity_container entities;
 	std::array<entity_container, CompTagCount> entityCount;
+
+	void report_error(error_code_t errCode, const char * error) const;
+
+	std::pair<const entity_t*, entity_status> get_status(const entity_t &entity) const;
 #if !NDEBUG
 	const entity_t & assert_entity(const entity_t &entity) const;
 	entity_t & assert_entity(const entity_t &entity) {
@@ -160,6 +176,7 @@ class entity_manager<component_list<Components...>, tag_list<Tags...>> {
 			(meta::as_const(*this).assert_entity(entity));
 	}
 #endif
+
 	template <typename Component, typename... Args>
 	std::pair<Component&, bool> add_component(entity_t &entity, Args&&... args);
 
@@ -186,8 +203,6 @@ public:
 	entity_manager() = default;
 	entity_manager(const entity_manager &) = delete;
 	entity_manager& operator = (const entity_manager &) = delete;
-	entity_manager(entity_manager &&) = delete;
-	entity_manager& operator = (entity_manager &&) = delete;
 
 	entity_t create_entity();
 	void delete_entity(const entity_t &);
@@ -200,10 +215,11 @@ public:
 	void for_each(Func && func);
 
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
+	using error_callback_t = void(error_code_t, const char *);
 private:
 	std::function<error_callback_t> errorCallback;
-	void handle_error(error_code_t err) {
-		if (errorCallback) errorCallback(err);
+	void handle_error(error_code_t err, const char *msg) {
+		if (errorCallback) errorCallback(err, msg);
 		else std::terminate();
 	}
 public:

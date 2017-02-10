@@ -6,22 +6,17 @@
 
 namespace entityplus {
 
-#ifdef ENTITYPLUS_NO_EXCEPTIONS
-
 enum class error_code_t {
 	BAD_ENTITY,
 	INVALID_COMPONENT
 };
 
-using error_callback_t = void(error_code_t);
-
-#else
+#ifndef ENTITYPLUS_NO_EXCEPTIONS
 
 struct bad_entity_exception : std::logic_error {
 	using std::logic_error::logic_error;
 };
 
-template <class Component>
 struct invalid_component : std::logic_error {
 	using std::logic_error::logic_error;
 };
