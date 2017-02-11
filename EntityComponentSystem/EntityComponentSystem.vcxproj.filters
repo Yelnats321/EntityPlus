@@ -47,6 +47,9 @@
     <ClCompile Include="entity_test.cpp">
       <Filter>Tests</Filter>
     </ClCompile>
+    <ClCompile Include="event_test.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="entity.impl">

@@ -155,6 +155,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="entity_test.cpp" />
+    <ClCompile Include="event_test.cpp" />
     <ClCompile Include="metafunctions_test.cpp" />
     <ClCompile Include="test_main.cpp" />
   </ItemGroup>
