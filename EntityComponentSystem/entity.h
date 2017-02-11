@@ -73,10 +73,14 @@ public:
 	template <typename Component, typename... Args>
 	inline std::pair<Component&, bool> add_component(Args&&... args) {
 		using ValidComp = meta::typelist_has_type<Component, component_t>;
+		using IsConstructible = std::is_constructible<Component, Args&&...>;
 		return meta::eval_if(
 			[&](const std::false_type &) { return entityManager->template add_component<Component>(*this, std::forward<Args>(args)...); },
 			meta::fail_cond<ValidComp>([](auto delay) {
 			static_assert(delay, "add_component called with invalid component");
+			return std::declval<std::pair<Component&, bool>>();}),
+			meta::fail_cond<IsConstructible>([](auto delay) {
+			static_assert(delay, "add_component cannot construct component with given args");
 			return std::declval<std::pair<Component&, bool>>();
 		}));
 	}
@@ -166,7 +170,7 @@ class entity_manager<component_list<Components...>, tag_list<Tags...>> {
 	entity_container entities;
 	std::array<entity_container, CompTagCount> entityCount;
 
-	void report_error(error_code_t errCode, const char * error) const;
+	[[noreturn]] void report_error(error_code_t errCode, const char * error) const;
 
 	std::pair<const entity_t*, entity_status> get_status(const entity_t &entity) const;
 #if !NDEBUG

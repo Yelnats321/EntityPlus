@@ -179,7 +179,7 @@ TEST_CASE("for_each entity", "[entity]") {
 
 	entity_manager<comps, tags> em;
 	auto ent1 = em.create_entity();
-	auto &ea = ent1.add_component<A>(4).first;
+	ent1.add_component<A>(4).first;
 	auto &eb = ent1.add_component<B>("smith").first;
 	auto &ec = ent1.add_component<C>(3, 5).first;
 
@@ -191,7 +191,6 @@ TEST_CASE("for_each entity", "[entity]") {
 		REQUIRE(a.x == 4);
 		REQUIRE(b.name == "smith");
 		REQUIRE(c.get() == 5);
-		//REQUIRE(&ea == &a); not true because ent2 can invalidate the component handle
 		REQUIRE(&eb == &b);
 		REQUIRE(&ec == &c);
 		b.name = "john";
@@ -206,7 +205,7 @@ TEST_CASE("for_each entity", "[entity]") {
 	REQUIRE(count == 2);
 	REQUIRE(val == 6);
 
-	em.for_each<A, B, TA>([&](auto ent, auto &, auto &) {
+	em.for_each<A, B, TA>([&](auto, auto &, auto &) {
 		REQUIRE(false);
 	});
 }

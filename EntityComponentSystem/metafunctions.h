@@ -151,6 +151,7 @@ using typelist_intersection_t = typename typelist_intersection<T, U>::type;
 namespace detail {
 template <typename Func, typename... Ts, std::size_t... Is>
 inline void for_each_impl(std::tuple<Ts...> &tup, Func &&func, std::index_sequence<Is...>) {
+	(void)tup; (void)func;
 	std::initializer_list<int> _ = {((void)func(std::get<Is>(tup), Is), 0)...};
 }
 }

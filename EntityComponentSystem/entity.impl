@@ -47,15 +47,12 @@ auto ENTITY_MANAGER_SPEC::assert_entity(const entity_t &entity) const -> const e
 	case entity_status::INVALID_MANAGER:
 		report_error(error_code_t::BAD_ENTITY,
 					 "Entity not owned by this manager");
-		break;
 	case entity_status::NOT_FOUND:
 		report_error(error_code_t::BAD_ENTITY,
 					 "Entity can't be found in manager. Are you sure it's valid?");
-		break;
 	case entity_status::STALE:
 		report_error(error_code_t::BAD_ENTITY,
 					 "Entity's components/tags are stale. Don't store stale entities");
-		break;
 	case entity_status::OK:
 		return *entStatus.first;
 	}
