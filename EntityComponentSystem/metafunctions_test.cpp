@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include <catch.hpp>
 #include "metafunctions.h"
 #include "typelist.h"
 
