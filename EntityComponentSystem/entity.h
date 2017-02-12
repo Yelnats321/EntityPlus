@@ -116,7 +116,7 @@ public:
 
 	template <typename Tag>
 	inline bool has_tag() const noexcept {
-		using ValidTag = meta::typelist_has_type<Tag, meta::typelist<Tags...>>;
+		using ValidTag = meta::typelist_has_type<Tag, tag_t>;
 		return meta::eval_if(
 			[&](auto) { return meta::get<Tag>(compTags); },
 			meta::fail_cond<ValidTag>([](auto delay) {
@@ -128,7 +128,7 @@ public:
 	// returns the previous tag value
 	template <typename Tag>
 	inline bool set_tag(bool set) {
-		using ValidTag = meta::typelist_has_type<Tag, meta::typelist<Tags...>>;
+		using ValidTag = meta::typelist_has_type<Tag, tag_t>;
 		return meta::eval_if(
 			[&](auto) { return entityManager->template set_tag<Tag>(*this, set); },
 			meta::fail_cond<ValidTag>([](auto delay) {
