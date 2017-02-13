@@ -151,8 +151,8 @@ template <typename Component>
 const Component& ENTITY_MANAGER_SPEC::get_component(const entity_t &entity) const {
 #if !NDEBUG
 	auto &myEnt = assert_entity(entity);
-#endif
 	assert(meta::get<Component>(entity.compTags) == meta::get<Component>(myEnt.compTags));
+#endif
 	if (!meta::get<Component>(entity.compTags)) {
 		report_error(error_code_t::INVALID_COMPONENT,
 					 "Tried to get a component the entity does not have");
@@ -289,6 +289,7 @@ template <typename T, typename U> struct make_iters;
 template <typename T, typename... Us> struct make_iters<T, meta::typelist<Us...>> {
 	template <typename Container>
 	auto operator()(Container &c) const {
+		(void)c;
 		return std::make_tuple(meta::get<Us, T>(c).begin()...);
 	}
 };
@@ -296,6 +297,7 @@ template <typename T, typename... Us> struct make_iters<T, meta::typelist<Us...>
 template <typename Func, typename Func2, typename T, typename... Ts, std::size_t... Is>
 void deref_and_invoke_impl(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iters,
 						   std::index_sequence<Is...>) {
+	(void)func2; (void)iters;
 	func(std::forward<T>(t), func2(std::get<Is>(iters))...);
 }
 
