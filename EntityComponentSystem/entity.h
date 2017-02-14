@@ -54,8 +54,8 @@ public:
 	entity(private_access, detail::entity_id_t id, entity_manager_t *entityManager):
 		id(id), entityManager(entityManager) {}
 
-	entity_status get_status() const {
-		return entityManager->get_status(*this).second;
+	entity_status get_status() const noexcept {
+		return entityManager->get_entity_and_status(*this).second;
 	}
 
 	template <typename Component>
@@ -172,7 +172,7 @@ class entity_manager<component_list<Components...>, tag_list<Tags...>> {
 
 	[[noreturn]] void report_error(error_code_t errCode, const char * error) const;
 
-	std::pair<const entity_t*, entity_status> get_status(const entity_t &entity) const;
+	std::pair<const entity_t*, entity_status> get_entity_and_status(const entity_t &entity) const noexcept;
 #if !NDEBUG
 	const entity_t & assert_entity(const entity_t &entity) const;
 	entity_t & assert_entity(const entity_t &entity) {
@@ -200,7 +200,7 @@ class entity_manager<component_list<Components...>, tag_list<Tags...>> {
 	void remove_bit(entity_t &local, entity_t &foreign);
 
 	template <typename... Ts>
-	std::size_t get_smallest_idx();
+	std::size_t get_smallest_idx() noexcept;
 public:
 	using return_container = std::vector<entity_t>;
 
@@ -213,7 +213,7 @@ public:
 
 	// Gets all entities that have the components and tags provided
 	template<typename... Ts>
-	return_container get_entities();
+	return_container get_entities() noexcept;
 
 	template<typename... Ts, typename Func>
 	void for_each(Func && func);
