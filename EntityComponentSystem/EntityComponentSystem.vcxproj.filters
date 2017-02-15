@@ -33,6 +33,9 @@
     <ClInclude Include="event.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="test_common.h">
+      <Filter>Tests</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="test_main.cpp">

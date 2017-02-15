@@ -1,5 +1,5 @@
-#include <catch.hpp>
-#include "metafunctions.h"
+#include "test_common.h"
+
 #include "typelist.h"
 
 using namespace entityplus::meta;

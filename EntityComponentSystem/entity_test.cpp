@@ -1,7 +1,4 @@
-#include <catch.hpp>
-#include "entity.h"
-
-using namespace entityplus;
+#include "test_common.h"
 
 struct A {
 	int x;
@@ -24,6 +21,7 @@ public:
 
 TEST_CASE("entity", "[entity]") {
 	entity_manager<component_list<>, tag_list<>> em;
+	em.set_error_callback(error_handler);
 	auto ent = em.create_entity();
 	REQUIRE(ent.get_status() == entity_status::OK);
 	REQUIRE(em.get_entities<>().size() == 1);
@@ -32,6 +30,7 @@ TEST_CASE("entity", "[entity]") {
 	REQUIRE(em.get_entities<>().size() == 0);
 
 	entity_manager<component_list<>, tag_list<>> em2;
+	em2.set_error_callback(error_handler);
 	auto foreign = em2.create_entity();
 	REQUIRE_THROWS(em.delete_entity(foreign));
 }
@@ -39,6 +38,7 @@ TEST_CASE("entity", "[entity]") {
 TEST_CASE("components", "[entity]") {
 	using comps = component_list<A, B, C>;
 	entity_manager<comps, tag_list<>> em;
+	em.set_error_callback(error_handler);
 	auto ent = em.create_entity();
 	REQUIRE(!ent.has_component<A>());
 	REQUIRE(!ent.has_component<B>());
@@ -81,6 +81,7 @@ TEST_CASE("components", "[entity]") {
 TEST_CASE("tags", "[entity]") {
 	using tags = tag_list<struct TA, struct TB, struct TC>;
 	entity_manager<component_list<>, tags> em;
+	em.set_error_callback(error_handler);
 	auto ent = em.create_entity();
 
 	REQUIRE(!ent.has_tag<TA>());
@@ -108,6 +109,7 @@ TEST_CASE("stale entity", "[entity]") {
 	using comps = component_list<A, B, C>;
 	using tags = tag_list<struct TA, struct TB, struct TC>;
 	entity_manager<comps, tags> em;
+	em.set_error_callback(error_handler);
 
 	auto ent = em.create_entity();
 	REQUIRE(ent.get_status() == entity_status::OK);
@@ -130,6 +132,7 @@ TEST_CASE("get_entities", "[entity]") {
 	using tags = tag_list<struct TA, struct TB, struct TC>;
 	SECTION("by type") {
 		entity_manager<comps, tags> em;
+		em.set_error_callback(error_handler);
 		auto ent1 = em.create_entity();
 		ent1.set_tag<TA>(true);
 		ent1.set_tag<TB>(true);
@@ -178,6 +181,7 @@ TEST_CASE("for_each entity", "[entity]") {
 	using tags = tag_list<struct TA, struct TB, struct TC>;
 
 	entity_manager<comps, tags> em;
+	em.set_error_callback(error_handler);
 	auto ent1 = em.create_entity();
 	ent1.add_component<A>(4).first;
 	auto &eb = ent1.add_component<B>("smith").first;

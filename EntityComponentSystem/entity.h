@@ -226,9 +226,9 @@ public:
 	using error_callback_t = void(error_code_t, const char *);
 private:
 	std::function<error_callback_t> errorCallback;
-	void handle_error(error_code_t err, const char *msg) {
+	[[noreturn]] void handle_error(error_code_t err, const char *msg) const {
 		if (errorCallback) errorCallback(err, msg);
-		else std::terminate();
+		std::terminate();
 	}
 public:
 	void set_error_callback(std::function<error_callback_t> cb) {
