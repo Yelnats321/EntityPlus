@@ -1,6 +1,6 @@
 #include "test_common.h"
 
-#include "typelist.h"
+#include "../typelist.h"
 
 using namespace entityplus::meta;
 

@@ -21,8 +21,9 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1D9ABFDE-46DE-4AFA-A957-CF8356A506E8}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>EntityComponentSystem</RootNamespace>
+    <RootNamespace>EntityPlus</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <ProjectName>EntityPlus</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -147,17 +148,17 @@
     <ClInclude Include="event.h" />
     <ClInclude Include="exception.h" />
     <ClInclude Include="metafunctions.h" />
-    <ClInclude Include="test_common.h" />
+    <ClInclude Include="test\test_common.h" />
     <ClInclude Include="typelist.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="entity.impl" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="entity_test.cpp" />
-    <ClCompile Include="event_test.cpp" />
-    <ClCompile Include="metafunctions_test.cpp" />
-    <ClCompile Include="test_main.cpp" />
+    <ClCompile Include="test\entity_test.cpp" />
+    <ClCompile Include="test\event_test.cpp" />
+    <ClCompile Include="test\metafunctions_test.cpp" />
+    <ClCompile Include="test\test_main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

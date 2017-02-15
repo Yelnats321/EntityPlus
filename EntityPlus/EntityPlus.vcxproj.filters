@@ -13,7 +13,7 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Tests">
+    <Filter Include="Test">
       <UniqueIdentifier>{753d9367-4042-4327-a597-a19aefc855a6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -33,27 +33,27 @@
     <ClInclude Include="event.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="test_common.h">
-      <Filter>Tests</Filter>
+    <ClInclude Include="test\test_common.h">
+      <Filter>Test</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="test_main.cpp">
-      <Filter>Tests</Filter>
-    </ClCompile>
-    <ClCompile Include="metafunctions_test.cpp">
-      <Filter>Tests</Filter>
-    </ClCompile>
-    <ClCompile Include="entity_test.cpp">
-      <Filter>Tests</Filter>
-    </ClCompile>
-    <ClCompile Include="event_test.cpp">
-      <Filter>Tests</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="entity.impl">
       <Filter>Source Files</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="test\metafunctions_test.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test_main.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="test\entity_test.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="test\event_test.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

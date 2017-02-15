@@ -1,5 +1,5 @@
 #include <catch.hpp>
-#include "event.h"
+#include "../event.h"
 
 using entityplus::event_manager;
 

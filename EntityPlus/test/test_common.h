@@ -1,6 +1,6 @@
 #pragma once
 #include <catch.hpp>
-#include "entity.h"
+#include "../entity.h"
 
 using namespace entityplus;
 
