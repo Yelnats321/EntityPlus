@@ -37,12 +37,14 @@ class entity {
 
 template <typename... Components, typename... Tags>
 class entity<component_list<Components...>, tag_list<Tags...>> {
+public:
 	using component_list_t = component_list<Components...>;
-	using component_t = meta::typelist<Components...>;
 	using tag_list_t = tag_list<Tags...>;
+	using entity_manager_t = entity_manager<component_list_t, tag_list_t>;
+private:
+	using component_t = meta::typelist<Components...>;
 	using tag_t = meta::typelist<Tags...>;
 	using comp_tag_t = meta::typelist<Components..., Tags...>;
-	using entity_manager_t = entity_manager<component_list_t, tag_list_t>;
 
 	friend entity_manager_t;
 	struct private_access {};
@@ -148,15 +150,17 @@ public:
 
 template <typename... Components, typename... Tags>
 class entity_manager<component_list<Components...>, tag_list<Tags...>> {
-	// Subject to change for an additional customization point
+public:
 	using component_list_t = component_list<Components...>;
-	using component_t = meta::typelist<Components... >;
 	using tag_list_t = tag_list<Tags...>;
+	using entity_t = detail::entity<component_list_t, tag_list_t>;
+private:
+	using component_t = meta::typelist<Components... >;
 	using tag_t = meta::typelist<Tags...>;
 	using comp_tag_t = meta::typelist<Components..., Tags...>;
-	using entity_t = detail::entity<component_list_t, tag_list_t>;
-	friend entity_t;
 	using entity_container = boost::container::flat_set<entity_t>;
+
+	friend entity_t;
 
 	static_assert(meta::is_typelist_unique_v<comp_tag_t>,
 				  "component_list and tag_list must not intersect");

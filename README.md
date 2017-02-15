@@ -158,7 +158,7 @@ template <typename Component>
 ```
 `Returns`: The `Component` requested.
 
-`Prerequisites`: `entity` is `OK`
+`Prerequisites`: `entity` is `OK`.
 
 `Throws`: `bad_entity` if the `entity` is not `OK`. `invalid_component` if the `entity` does not own a `Component`.
 
@@ -169,7 +169,7 @@ bool has_tag() const noexcept
 ```
 `Returns`: `bool` indicating if the `entity` has `Tag`.
 
-`Prerequisites`: `entity` is `OK`
+`Prerequisites`: `entity` is `OK`.
 
 
 ```c++
@@ -178,7 +178,7 @@ bool set_tag(bool set)
 ```
 `Returns`: `bool` indiciating if the `entity` had `Tag` before the call. The old value of `has_tag()`.
 
-`Prerequisites`: `entity` is `OK`
+`Prerequisites`: `entity` is `OK`.
 
 `Throws`: `bad_entity` if the `entity` is not `OK`.
 
@@ -199,7 +199,7 @@ void delete_entity(const entity_t &entity)
 
 ```c++
 template<typename... Ts>
-return_container get_entities()
+return_container get_entities() noexcept
 ```
 `Returns`: `return_container` of all the entities that have all the components/tags in `Ts...`.
 
@@ -209,3 +209,6 @@ template<typename... Ts, typename Func>
 void for_each(Func && func)
 ```
 Calls `func` for each entity that has all the components/tags in `Ts...`. The arguments supplied to `func` are the entity, as well as all the components in `Ts...`.
+
+####`entity` vs `entity_t`
+`entity` is the template class while `entity_t` is the template class with the same template arguments as the `entity_manager`. That is, `entity_t = entity<component_list, tag_list>`.
