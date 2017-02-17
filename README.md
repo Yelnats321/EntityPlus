@@ -1,7 +1,7 @@
 # EntityPlus
 EntityPlus is an Entity Component System library written in C++14, offering fast compilation and runtime speeds (to be benchmarked). The only external dependency is `boost` (specifically `boost::container`), and the library is header only, saving you the trouble of fidgeting with build systems.
 
-The ECS framework is an attempt to decouple data from mechanics. In doing so, it lets you create objects out of building blocks that mesh together to create a whole. It models a has-a relationship, letting you expand without worrying about dependency trees and inheritence. The three main aspects of an ECS framework are of course Entities, Components, and Systems.
+The ECS framework is an attempt to decouple data from mechanics. In doing so, it lets you create objects out of building blocks that mesh together to create a whole. It models a has-a relationship, letting you expand without worrying about dependency trees and inheritance. The three main aspects of an ECS framework are of course Entities, Components, and Systems.
 
 ###Components
 Components contain information. This can be anything, such as health, a piece of armor, or a status effect. An example component could be the identity of a person, which could be modeled like this:
@@ -40,7 +40,7 @@ Don't be scared by the syntax. Since we don't rely on inheritance or CRTP, we mu
 ```c++
 error C2338: component_list must be unique
 ```
-Not so bad, right? EntityPlus is designed with the end user in mind, attempting to achieve as little template error bloat as possible. Almost all template errors will be reported in a simple and concise manner, with minimal errors as the end goal. With `C++17` most code will switch over to using `constexpr if` for errors, which will reduce the error callstack even further.
+Not so bad, right? EntityPlus is designed with the end user in mind, attempting to achieve as little template error bloat as possible. Almost all template errors will be reported in a simple and concise manner, with minimal errors as the end goal. With `C++17` most code will switch over to using `constexpr if` for errors, which will reduce the error call stack even further.
 
 Now that we have a manager, we can create an actual entity.
 ```c++
@@ -48,11 +48,11 @@ auto entity = entity_manager.create_entity();
 ```
 You probably want to add those components to the entity.
 ```c++
-auto retId = entity.add_cmponent<identity>("John", 25);
+auto retId = entity.add_component<identity>("John", 25);
 retId.first.name_ = "Smith";
 entity.add_component<health>(100, 100);
 ```
-It's quite similar to using `vector::emplace()`, because the function forwards it's args to the constructor. What gets returned is a `pair<component&, bool>`. The function can fail, as indicated by the `bool`, in which case the returned `component&` is a reference to the already existing component. Otherwise, the function succeeded and the new component is returned. We don't hold on to the return of `create_entity()` for long. In fact, storing a stale entity is incorrect, as modifying the entity invalidates all references to it. You'll be treated with a runtime error if you use a stale entity.
+It's quite similar to using `map::emplace()`, because the function forwards its args to the constructor, and has a similar return semantic. What gets returned is a `pair<component&, bool>`. The function can fail if a component of that type already exists, as indicated by the `bool`, in which case the returned `component&` is a reference to the already existing component. Otherwise, the function succeeded and the new component is returned. We don't hold on to the return of `create_entity()` for long. In fact, storing a stale entity is incorrect, as modifying the entity invalidates all references to it. You'll be treated with a runtime error if you use a stale entity.
 
 ###Systems
 The last thing we want to do is manipulate our entities. Unlike some ECS frameworks, EntityPlus doesn't have a system manager or similar device. You can work with the entities in one of two ways. The first is querying for a list of them by type
@@ -127,7 +127,7 @@ entity_status get_status() const noexcept
 template <typename Component>
 bool has_component() const noexcept
 ```
-`Returns`: `bool` indiciating whether the `entity` has the `Component`. 
+`Returns`: `bool` indicating whether the `entity` has the `Component`. 
 
 `Prerequisites`: `entity` is `OK`.
 
@@ -142,14 +142,18 @@ std::pair<Component&, bool> add_component(Args&&... args)
 
 `Throws`: `bad_entity` if the `entity` is not `OK`.
 
+Can invalidate references to all components of type `Component`, as well as a `for_each` involving `Component`.
+
 
 ```c++
 template <typename Component>
 bool remove_component()
 ```
-`Returns`: `bool` indiciating if the `Component` was removed.
+`Returns`: `bool` indicating if the `Component` was removed.
 
 `Prerequisites`: `entity` is `OK`.
+
+Can invalidate references to all components of type `Component`, as well as a `for_each` involving `Component`.
 
 
 ```c++
@@ -176,17 +180,21 @@ bool has_tag() const noexcept
 template <typename Tag>
 bool set_tag(bool set) 
 ```
-`Returns`: `bool` indiciating if the `entity` had `Tag` before the call. The old value of `has_tag()`.
+`Returns`: `bool` indicating if the `entity` had `Tag` before the call. The old value of `has_tag()`.
 
 `Prerequisites`: `entity` is `OK`.
 
 `Throws`: `bad_entity` if the `entity` is not `OK`.
+
+Can  invalidate a `for_each` involving `Tag`, only if `set != set_tag<Tag>(set)`.
 
 ####Entity Manager:
 ```c++
 entity_t create_entity()
 ```
 `Returns`: `entity_t` that was created.
+
+Can invalidate a `for_each`.
 
 
 ```c++
@@ -195,6 +203,8 @@ void delete_entity(const entity_t &entity)
 `Prerequisites`: `entity` is `OK`.
 
 `Throws`: `bad_entity` if the `entity` is not `OK`.
+
+Can invalidate a `for_each`.
 
 
 ```c++
