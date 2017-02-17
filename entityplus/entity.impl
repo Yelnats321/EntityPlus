@@ -342,7 +342,14 @@ void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 		static_assert(delay, "for_each called with invalid typelist");}),
 		meta::fail_cond<IsFunc>([](auto delay) {
 		static_assert(delay, "for_each called with invalid callable");}),
-		meta::fail_cond<IsEmpty>([&](auto) { for (const auto &ent : entities) func(ent); }));
+		meta::fail_cond<IsEmpty>([&](auto) {
+		auto iters = detail::make_iters<component_list_t, ComponentsPart>{}(components);
+		for (const auto &ent : entities) {
+			detail::deref_and_invoke(func,
+									 [](auto &iter) -> auto &  { return iter->second; },
+									 ent, iters);
+		}
+		}));
 }
 
 #undef ENTITY_MANAGER_TEMPS
