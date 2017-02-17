@@ -53,7 +53,7 @@ Not so bad, right? EntityPlus is designed with the end user in mind, attempting 
 
 Now that we have a manager, we can create an actual entity.
 ```c++
-auto entity = entity_manager.create_entity();
+auto entity = entityManager.create_entity();
 ```
 You probably want to add those components to the entity.
 ```c++
@@ -61,7 +61,7 @@ auto retId = entity.add_component<identity>("John", 25);
 retId.first.name_ = "Smith";
 entity.add_component<health>(100, 100);
 ```
-It's quite similar to using `map::emplace()`, because the function forwards its args to the constructor, and has a similar return semantic. What gets returned is a `pair<component&, bool>`. The function can fail if a component of that type already exists, as indicated by the `bool`, in which case the returned `component&` is a reference to the already existing component. Otherwise, the function succeeded and the new component is returned. We don't hold on to the return of `create_entity()` for long. In fact, storing a stale entity is incorrect, as modifying the entity invalidates all references to it. You'll be treated with a runtime error if you use a stale entity.
+If we supply a component that wasn't part of the original component list, we will be told this at compile time. In fact, any sort of type mismatch will be presented as a user friendly error when you compile. Adding a component is quite similar to using `map::emplace()`, because the function forwards its args to the constructor and has a similar return semantic. A `pair<component&, bool>` is returned, indicating error or success and the component. The function can fail if a component of that type already exists, in which case the returned `component&` is a reference to the already existing component. Otherwise, the function succeeded and the new component is returned. We don't hold on to the return of `create_entity()` for long. In fact, storing a stale entity is incorrect, as modifying the entity invalidates all references to it. You'll be treated with a runtime error if you use a stale entity.
 
 ###Systems
 The last thing we want to do is manipulate our entities. Unlike some ECS frameworks, EntityPlus doesn't have a system manager or similar device. You can work with the entities in one of two ways. The first is querying for a list of them by type
