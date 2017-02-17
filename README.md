@@ -3,6 +3,15 @@ EntityPlus is an Entity Component System library written in C++14, offering fast
 
 The ECS framework is an attempt to decouple data from mechanics. In doing so, it lets you create objects out of building blocks that mesh together to create a whole. It models a has-a relationship, letting you expand without worrying about dependency trees and inheritance. The three main aspects of an ECS framework are of course Entities, Components, and Systems.
 
+###Requirements
+EntityPlus requires C++14 conformance, and was mainly developed on MSVC. It has been tested to work on
+
+* MSVC 2015 update 3
+* Clang 3.5.0
+* GCC 5.3.0
+
+The only other requirement is boost.
+
 ###Components
 Components contain information. This can be anything, such as health, a piece of armor, or a status effect. An example component could be the identity of a person, which could be modeled like this:
 ```c++
@@ -102,15 +111,13 @@ n = amount of entities
 
 Entity:
 has_(component/entity) = O(1)
-add_component = O(n)
-remove_component = O(n)
-get_component = O(log n)
+(add/remove)_component = O(n)
 set_tag = O(n)
+get_component = O(log n)
 get_status = O(log n)
 
 Entity Manager:
-create_entity = O(n)
-remove_entity = O(n)
+(create/remove)_entity = O(n)
 get_entities = O(n)
 for_each = O(n)
 ```
