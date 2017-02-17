@@ -208,7 +208,7 @@ decltype(auto) eval_if(Func&& success, detail::fail_cond_t<Preds, Funcs>&&... fc
 		detail::tag<1>{},
 		std::move(fcs)...,
 		fail_cond<std::false_type>(std::forward<Func>(success)));
-	using pred_type = typename std::decay_t<decltype(rt)>::pred_type;
+	//using pred_type = typename std::decay_t<decltype(rt)>::pred_type;
 	return rt.func(std::false_type{});
 }
 

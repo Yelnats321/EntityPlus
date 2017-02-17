@@ -202,7 +202,7 @@ TEST_CASE("for_each entity", "[entity]") {
 	em.set_error_callback(error_handler);
 #endif
 	auto ent1 = em.create_entity();
-	ent1.add_component<A>(4).first;
+	ent1.add_component<A>(4);
 	auto &eb = ent1.add_component<B>("smith").first;
 	auto &ec = ent1.add_component<C>(3, 5).first;
 

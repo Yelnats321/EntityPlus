@@ -26,6 +26,8 @@ void ENTITY_MANAGER_SPEC::report_error(error_code_t errCode, const char * msg) c
 	case entityplus::error_code_t::INVALID_COMPONENT:
 		throw invalid_component(msg);
 	}
+	// unreachable
+	std::terminate();
 #endif
 }
 
@@ -61,6 +63,8 @@ auto ENTITY_MANAGER_SPEC::assert_entity(const entity_t &entity) const -> const e
 	case entity_status::OK:
 		return *entStatus.first;
 	}
+	// unreachable
+	std::terminate();
 }
 #endif
 
@@ -190,7 +194,7 @@ bool ENTITY_MANAGER_SPEC::set_tag(entity_t &entity, bool set) {
 ENTITY_MANAGER_TEMPS
 auto ENTITY_MANAGER_SPEC::create_entity() -> entity_t {
 	assert(std::numeric_limits<detail::entity_id_t>::max() != currentId);
-	auto emp = entities.emplace(entity_t::private_access{}, currentId++, this);
+	auto emp = entities.emplace(typename entity_t::private_access{}, currentId++, this);
 	assert(emp.second);
 
 	return *emp.first;
