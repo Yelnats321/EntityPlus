@@ -29,9 +29,19 @@ TEST_CASE("entity", "[entity]") {
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
 	em.set_error_callback(error_handler);
 #endif
+	REQUIRE(em.get_entities<>().size() == 0);
+	em.for_each<>([](auto) {
+		REQUIRE(false);
+	});
 	auto ent = em.create_entity();
 	REQUIRE(ent.get_status() == entity_status::OK);
+	em.get_entities<>();
 	REQUIRE(em.get_entities<>().size() == 1);
+	int count = 0;
+	em.for_each<>([&](auto) {
+		++count;
+	});
+	REQUIRE(count == 1);
 	em.delete_entity(ent);
 	REQUIRE(ent.get_status() == entity_status::NOT_FOUND);
 	REQUIRE(em.get_entities<>().size() == 0);
@@ -50,6 +60,15 @@ TEST_CASE("components", "[entity]") {
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
 	em.set_error_callback(error_handler);
 #endif
+	REQUIRE((em.get_entities<A>().size() == 0));
+	REQUIRE((em.get_entities<A, B>().size() == 0));
+	em.for_each<A>([](auto, auto) {
+		REQUIRE(false);
+	});
+	em.for_each<A,B>([](auto, auto, auto) {
+		REQUIRE(false);
+	});
+
 	auto ent = em.create_entity();
 	REQUIRE(!ent.has_component<A>());
 	REQUIRE(!ent.has_component<B>());

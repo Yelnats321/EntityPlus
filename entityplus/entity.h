@@ -178,6 +178,7 @@ private:
 	typename component_list_t::type components;
 	entity_container entities;
 	std::array<entity_container, CompTagCount> entityCount;
+	std::size_t maxLinearSearchDistance = 64;
 
 	[[noreturn]] void report_error(error_code_t errCode, const char * error) const;
 
@@ -226,6 +227,14 @@ public:
 
 	template<typename... Ts, typename Func>
 	void for_each(Func && func);
+
+	std::size_t get_max_linear_dist() const {
+		return maxLinearSearchDistance;
+	}
+
+	void set_max_linear_dist(std::size_t maxLinearDist) {
+		return maxLinearSearchDistance = maxLinearDist;
+	}
 
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
 	using error_callback_t = void(error_code_t, const char *);
