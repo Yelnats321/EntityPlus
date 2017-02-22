@@ -309,8 +309,7 @@ template <typename T, typename U> struct make_iters;
 template <typename T, typename... Us> struct make_iters<T, meta::typelist<Us...>> {
 	template <typename Container>
 	auto operator()(Container &c, std::size_t smallestIdxSize, std::size_t maxLinearSearchDistance) const {
-		(void)c; (void)smallestIdxSize;
-		
+		(void)c; (void)smallestIdxSize; (void)maxLinearSearchDistance;
 		return std::make_tuple(make_data(meta::get<Us, T>(c).begin(),
 										 meta::get<Us, T>(c).end(),
 										 meta::get<Us, T>(c).size()/smallestIdxSize < maxLinearSearchDistance)...);
