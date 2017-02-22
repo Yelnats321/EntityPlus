@@ -11,12 +11,12 @@
 #include <utility>
 #include <type_traits>
 #include <array>
-#include <boost/container/flat_set.hpp>
-#include <unordered_set>
+#include <functional>
 
 #include "typelist.h"
 #include "metafunctions.h"
 #include "exception.h"
+#include "container.h"
 
 namespace entityplus {
 // Safety classes so that you can only create using the proper list types
@@ -163,7 +163,7 @@ private:
 	using component_t = meta::typelist<Components... >;
 	using tag_t = meta::typelist<Tags...>;
 	using comp_tag_t = meta::typelist<Components..., Tags...>;
-	using entity_container = boost::container::flat_set<entity_t>;
+	using entity_container = flat_set<entity_t>;
 
 	friend entity_t;
 
