@@ -82,30 +82,60 @@ TEST_CASE("simple map", "[flat_map]") {
 
 TEST_CASE("map ordering invariant", "[flat_map]") {
 	entityplus::flat_map<int, float> map;
-	map.emplace(2, 1);
-	map.emplace(3, 1);
-	map.emplace(4, 1);
+	map.emplace(2, 1.f);
+	map.emplace(3, 1.f);
+	map.emplace(4, 1.f);
 	int count = 2;
 	for (auto i : map) {
 		REQUIRE(i.first == count++);
 	}
 	REQUIRE(count == 5);
 	count = 1;
-	map.emplace(1,5);
+	map.emplace(1, 5.f);
 	for (auto i : map) {
 		REQUIRE(i.first == count++);
 	}
 	REQUIRE(count == 5);
 
-	REQUIRE(!map.emplace(2, 3).second);
+	REQUIRE(!map.emplace(2, 3.f).second);
 	map.erase(2);
 	std::vector<std::pair<int, float>> test = {std::make_pair(1, 5.f),
 		std::make_pair(3, 1.f),
 		std::make_pair(4, 1.f)};
 	REQUIRE(std::equal(map.begin(), map.end(), test.begin(), test.end()));
 	count = 1;
-	map.emplace(2, 3);
+	map.emplace(2, 3.f);
 	for (auto i : map) {
 		REQUIRE(i.first == count++);
+	}
+}
+
+TEST_CASE("set invariance", "[flat_map]") {
+	entityplus::flat_set<int> set;
+	REQUIRE(set.emplace(2).second);
+	REQUIRE(set.emplace(4).second);
+	REQUIRE(set.emplace(5).second);
+	{
+		auto eq = {2,4,5};
+		REQUIRE(std::equal(set.begin(), set.end(),
+						   eq.begin(), eq.end()));
+	}
+	{
+		REQUIRE(set.emplace(3).second);
+		auto eq = {2,3,4,5};
+		REQUIRE(std::equal(set.begin(), set.end(),
+						   eq.begin(), eq.end()));
+	}
+	{
+		REQUIRE(set.emplace(1).second);
+		auto eq = {1,2,3,4,5};
+		REQUIRE(std::equal(set.begin(), set.end(),
+						   eq.begin(), eq.end()));
+	}
+	{
+		REQUIRE(set.emplace(6).second);
+		auto eq = {1,2,3,4,5,6};
+		REQUIRE(std::equal(set.begin(), set.end(),
+						   eq.begin(), eq.end()));
 	}
 }
