@@ -88,7 +88,6 @@ public:
 template <typename Key, typename T, typename Compare = std::less<Key>,
 	typename Allocator = std::allocator<std::pair<Key, T>>>
 class flat_map: private std::vector<std::pair<Key, T>, Allocator> {
-	Compare comp;
 public:
 	using key_type = Key;
 	using mapped_type = T;
@@ -97,15 +96,16 @@ public:
 	using key_compare = Compare;
 	struct value_compare {
 	protected:
-		Compare comp;
+		key_compare keyComp;
 	public:
-		value_compare(Compare c): comp(c) {}
+		value_compare(key_compare kc): keyComp(kc) {}
 		bool operator()(const value_type &lhs, const value_type &rhs) const {
-			return comp(lhs.first, rhs.first);
+			return keyComp(lhs.first, rhs.first);
 		}
 	};
 private:
-	value_compare valComp{comp};
+	key_compare keyComp;
+	value_compare valComp{keyComp};
 public:
 	using container_type::size_type;
 	using container_type::difference_type;
@@ -153,7 +153,7 @@ public:
 	iterator find(const key_type &key) {
 		auto lower = std::lower_bound(begin(), end(), key,
 									  [&](const value_type &val, const key_type &key) {
-			return comp(val.first, key);
+			return keyComp(val.first, key);
 		});
 		if (lower != end() && lower->first == key) return lower;
 		return end();
@@ -161,7 +161,7 @@ public:
 	const_iterator find(const key_type &key) const {
 		auto lower = std::lower_bound(begin(), end(), key, 
 									  [&](const value_type &val, const key_type &key) {
-			return comp(val.first, key);
+			return keyComp(val.first, key);
 		});
 		if (lower != end() && lower->first == key) return lower;
 		return end();
