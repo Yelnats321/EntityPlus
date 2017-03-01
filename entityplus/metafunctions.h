@@ -80,9 +80,8 @@ struct or_all: not_<std::is_same<
 ** -----------------------
 */
 
-template <typename T, typename Tuple>
+template <typename T, typename Typelist>
 struct typelist_has_type;
-
 
 template <typename T, typename... Ts>
 struct typelist_has_type<T, typelist<Ts...>>
@@ -96,7 +95,7 @@ constexpr bool typelist_has_type_v = typelist_has_type<T, U>::value;
 ** -----------------------
 */
 
-template <typename Tuple>
+template <typename Typelist>
 struct is_typelist_unique;
 
 template <>
@@ -240,13 +239,13 @@ decltype(auto) eval_if(Func&& success, detail::fail_cond_t<Preds, Funcs>&&... fc
 ** -----------------------
 */
 
-template <typename T, typename List, typename Tuple>
-decltype(auto) get(Tuple &t) {
+template <typename T, typename List, typename Typelist>
+decltype(auto) get(Typelist &t) {
 	return std::get<typename List::template container_type<T>>(t);
 }
 
-template <typename T, typename List, typename Tuple>
-decltype(auto) get(const Tuple &t) {
+template <typename T, typename List, typename Typelist>
+decltype(auto) get(const Typelist &t) {
 	return std::get<typename List::template container_type<T>>(t);
 }
 
@@ -255,7 +254,7 @@ decltype(auto) get(const Tuple &t) {
 ** -----------------------
 */
 
-template <typename Tuple>
+template <typename Typelist>
 class type_bitset;
 
 template <typename... Ts>
