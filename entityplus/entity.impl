@@ -109,7 +109,7 @@ void ENTITY_MANAGER_SPEC::remove_bit(entity_t &local, entity_t &foreign) {
 
 ENTITY_MANAGER_TEMPS
 template <typename Component, typename... Args>
-std::pair<Component&, bool> ENTITY_MANAGER_SPEC::add_component(entity_t &entity, Args&&... args) {
+std::pair<Component&, bool> ENTITY_MANAGER_SPEC::add_component(entity_t &entity, const std::tuple<Args...> &args) {
 #if NDEBUG
 	auto &myEnt = const_cast<entity_t &>(*entities.find(entity));
 #else
@@ -124,7 +124,7 @@ std::pair<Component&, bool> ENTITY_MANAGER_SPEC::add_component(entity_t &entity,
 		return{comp->second, false};
 	}
 
-	auto comp = container.emplace(entity.id, Component(std::forward<Args>(args)...));
+	auto comp = container.emplace(entity.id, meta::from_tuple<Component>(args));
 	assert(comp.second);
 
 	add_bit<Component>(myEnt, entity);

@@ -81,8 +81,11 @@ public:
 	inline std::pair<Component&, bool> add_component(Args&&... args) {
 		using IsCompValid = meta::typelist_has_type<Component, component_t>;
 		using IsConstructible = std::is_constructible<Component, Args&&...>;
+		auto argTuple = std::forward_as_tuple(std::forward<Args>(args)...);
 		return meta::eval_if(
-			[&](const std::false_type &) { return entityManager->template add_component<Component>(*this, std::forward<Args>(args)...); },
+			[&](auto) {
+				return entityManager->template add_component<Component>(*this, argTuple);
+			},
 			meta::fail_cond<IsCompValid>([](auto delay) {
 			static_assert(delay, "add_component called with invalid component");
 			return std::declval<std::pair<Component&, bool>>();}),
@@ -192,7 +195,7 @@ private:
 #endif
 
 	template <typename Component, typename... Args>
-	std::pair<Component&, bool> add_component(entity_t &entity, Args&&... args);
+	std::pair<Component&, bool> add_component(entity_t &entity, const std::tuple<Args...> &args);
 
 	template <typename Component>
 	bool remove_component(entity_t &entity);
