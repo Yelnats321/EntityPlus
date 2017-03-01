@@ -15,8 +15,9 @@ namespace meta {
 ** One liners
 ** -----------------------
 */
-template <typename... Ts>
-struct typelist {};
+
+template <typename...>
+struct typelist;
 
 template <typename...>
 struct delay: std::false_type {};
@@ -36,18 +37,26 @@ const T& as_const(T &t) {
 }
 
 /* -----------------------
-** and_all
+** and_all or_all
 ** -----------------------
 */
 
+namespace detail {
+template <bool...>
+struct bool_pack;
+}
+
 template <typename... Ts>
-struct and_all;
+struct and_all: std::is_same<
+	detail::bool_pack<true, Ts::value...>,
+	detail::bool_pack<Ts::value..., true>
+> {};
 
-template<>
-struct and_all<>: std::true_type {};
-
-template <typename T, typename... Ts>
-struct and_all<T, Ts...>: std::integral_constant<bool, T::value && and_all<Ts...>::value> {};
+template <typename... Ts>
+struct or_all: not_<std::is_same<
+	detail::bool_pack<false, Ts::value...>,
+	detail::bool_pack<Ts::value..., false>
+>> {};
 
 /* -----------------------
 ** typelist_has_type
@@ -57,20 +66,16 @@ struct and_all<T, Ts...>: std::integral_constant<bool, T::value && and_all<Ts...
 template <typename T, typename Tuple>
 struct typelist_has_type;
 
-template <typename T>
-struct typelist_has_type<T, typelist<>>: std::false_type {};
 
 template <typename T, typename... Ts>
-struct typelist_has_type<T, typelist<T, Ts...>>: std::true_type {};
-
-template <typename T, typename U, typename... Ts>
-struct typelist_has_type<T, typelist<U, Ts...>>: typelist_has_type<T, typelist<Ts...>> {};
+struct typelist_has_type<T, typelist<Ts...>>
+	: or_all<std::is_same<T, Ts>...> {};
 
 template <typename T, typename U>
 constexpr bool typelist_has_type_v = typelist_has_type<T, U>::value;
 
 /* -----------------------
-** is_tuple_unique
+** is_typelist_unique
 ** -----------------------
 */
 
@@ -81,8 +86,8 @@ template <>
 struct is_typelist_unique<typelist<>>: std::true_type {};
 
 template <typename T, typename... Ts>
-struct is_typelist_unique<typelist<T, Ts...>> :
-	and_<
+struct is_typelist_unique<typelist<T, Ts...>> 
+	: and_<
 		not_<typelist_has_type<T, typelist<Ts...>>>,
 		is_typelist_unique<typelist<Ts...>>
 	> {};
@@ -92,6 +97,7 @@ constexpr bool is_typelist_unique_v = is_typelist_unique<T>::value;
 
 /* -----------------------
 ** typelist_index
+** Prereq: Typelist must contain T
 ** -----------------------
 */
 

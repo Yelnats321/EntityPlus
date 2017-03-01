@@ -67,10 +67,10 @@ public:
 
 	template <typename Component>
 	inline bool has_component() const noexcept {
-		using ValidComp = meta::typelist_has_type<Component, component_t>;
+		using IsCompValid = meta::typelist_has_type<Component, component_t>;
 		return meta::eval_if(
 			[&](auto) { return meta::get<Component>(compTags); },
-			meta::fail_cond<ValidComp>([](auto delay) {
+			meta::fail_cond<IsCompValid>([](auto delay) {
 			static_assert(delay, "has_component called with invalid component");
 			return false;
 		}));
@@ -79,11 +79,11 @@ public:
 	// Adds the component if it doesn't exist, otherwise returns the existing component
 	template <typename Component, typename... Args>
 	inline std::pair<Component&, bool> add_component(Args&&... args) {
-		using ValidComp = meta::typelist_has_type<Component, component_t>;
+		using IsCompValid = meta::typelist_has_type<Component, component_t>;
 		using IsConstructible = std::is_constructible<Component, Args&&...>;
 		return meta::eval_if(
 			[&](const std::false_type &) { return entityManager->template add_component<Component>(*this, std::forward<Args>(args)...); },
-			meta::fail_cond<ValidComp>([](auto delay) {
+			meta::fail_cond<IsCompValid>([](auto delay) {
 			static_assert(delay, "add_component called with invalid component");
 			return std::declval<std::pair<Component&, bool>>();}),
 			meta::fail_cond<IsConstructible>([](auto delay) {
@@ -95,10 +95,10 @@ public:
 	// Returns if the component was removed or not (in the case that it didn't exist)
 	template <typename Component>
 	inline bool remove_component() {
-		using ValidComp = meta::typelist_has_type<Component, component_t>;
+		using IsCompValid = meta::typelist_has_type<Component, component_t>;
 		return meta::eval_if(
 			[&](auto) { return entityManager->template remove_component<Component>(*this); },
-			meta::fail_cond<ValidComp>([](auto delay) {
+			meta::fail_cond<IsCompValid>([](auto delay) {
 			static_assert(delay, "remove_component called with invalid component");
 			return false;
 		}));
@@ -107,10 +107,10 @@ public:
 	// Must have component in order to get it, otherwise you have a invalid_component exception
 	template <typename Component>
 	inline const Component& get_component() const {
-		using ValidComp = meta::typelist_has_type<Component, component_t>;
+		using IsCompValid = meta::typelist_has_type<Component, component_t>;
 		return meta::eval_if(
 			[&](auto) -> decltype(auto) { return entityManager->template get_component<Component>(*this); },
-			meta::fail_cond<ValidComp>([](auto delay) {
+			meta::fail_cond<IsCompValid>([](auto delay) {
 			static_assert(delay, "get_component called with invalid component");
 			return std::declval<const Component &>();
 		}));
@@ -123,10 +123,10 @@ public:
 
 	template <typename Tag>
 	inline bool has_tag() const noexcept {
-		using ValidTag = meta::typelist_has_type<Tag, tag_t>;
+		using IsTagValid = meta::typelist_has_type<Tag, tag_t>;
 		return meta::eval_if(
 			[&](auto) { return meta::get<Tag>(compTags); },
-			meta::fail_cond<ValidTag>([](auto delay) {
+			meta::fail_cond<IsTagValid>([](auto delay) {
 			static_assert(delay, "has_tag called with invalid tag");
 			return false;
 		}));
@@ -135,10 +135,10 @@ public:
 	// returns the previous tag value
 	template <typename Tag>
 	inline bool set_tag(bool set) {
-		using ValidTag = meta::typelist_has_type<Tag, tag_t>;
+		using IsTagValid = meta::typelist_has_type<Tag, tag_t>;
 		return meta::eval_if(
 			[&](auto) { return entityManager->template set_tag<Tag>(*this, set); },
-			meta::fail_cond<ValidTag>([](auto delay) {
+			meta::fail_cond<IsTagValid>([](auto delay) {
 			static_assert(delay, "set_tag called with invalid tag");
 			return false;
 		}));

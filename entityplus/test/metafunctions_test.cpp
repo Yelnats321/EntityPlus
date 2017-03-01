@@ -15,12 +15,23 @@ static_assert(!and_all<std::false_type, std::true_type, std::true_type>{}, "");
 static_assert(and_all<std::true_type, std::true_type, std::true_type>{}, "");
 static_assert(!and_all<std::false_type>{}, "");
 static_assert(and_all<std::true_type>{}, "");
+static_assert(and_all<>{}, "");
+
+static_assert(or_all<std::true_type, std::true_type, std::false_type>{}, "");
+static_assert(or_all<std::true_type, std::false_type, std::true_type>{}, "");
+static_assert(or_all<std::false_type, std::true_type, std::true_type>{}, "");
+static_assert(!or_all<std::false_type, std::false_type, std::false_type>{}, "");
+static_assert(or_all<std::true_type, std::true_type, std::true_type>{}, "");
+static_assert(!or_all<std::false_type>{}, "");
+static_assert(or_all<std::true_type>{}, "");
+static_assert(!or_all<>{}, "");
 
 static_assert(!typelist_has_type_v<char, typelist<>>, "");
 static_assert(typelist_has_type_v<float, typelist<float, int, double>>, "");
 static_assert(typelist_has_type_v<int, typelist<float, int, double>>, "");
 static_assert(typelist_has_type_v<double, typelist<float, int, double>>, "");
 static_assert(!typelist_has_type_v<char, typelist<float, int, double>>, "");
+static_assert(typelist_has_type_v<double, typelist<double, int, double>>, "");
 
 static_assert(is_typelist_unique_v<typelist<float, int, double>>, "");
 static_assert(!is_typelist_unique_v<typelist<float, double, int, double>>, "");
