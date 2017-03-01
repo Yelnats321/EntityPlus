@@ -52,7 +52,9 @@ private:
 	using comp_tag_t = meta::typelist<Components..., Tags...>;
 
 	friend entity_manager_t;
-	struct private_access {};
+	struct private_access {
+		explicit private_access() {}
+	};
 
 	detail::entity_id_t id;
 	entity_manager_t *entityManager;
