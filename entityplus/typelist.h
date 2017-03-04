@@ -6,9 +6,8 @@
 #pragma once
 
 #include "metafunctions.h"
+#include "container.h"
 
-#include <boost/container/flat_set.hpp>
-#include <boost/container/flat_map.hpp>
 #include <cstdint>
 
 namespace entityplus {
@@ -26,7 +25,7 @@ struct component_list {
 	static_assert(meta::is_typelist_unique_v<meta::typelist<Ts...>>, "component_list must be unique");
 
 	template <typename T>
-	using container_type = boost::container::flat_map<detail::entity_id_t, T>;
+	using container_type = flat_map<detail::entity_id_t, T>;
 	using type = std::tuple<container_type<Ts>...>;
 };
 }

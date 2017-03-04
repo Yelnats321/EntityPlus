@@ -1,5 +1,5 @@
 # EntityPlus
-EntityPlus is an Entity Component System library written in C++14, offering fast compilation and runtime speeds (to be benchmarked). The only external dependency is `boost` (specifically `boost::container`), and the library is header only, saving you the trouble of fidgeting with build systems.
+EntityPlus is an Entity Component System library written in C++14, offering fast compilation and runtime speeds. The library is header only, saving you the trouble of fidgeting with build systems and there are no external dependencies.
 
 The ECS framework is an attempt to decouple data from mechanics. In doing so, it lets you create objects out of building blocks that mesh together to create a whole. It models a has-a relationship, letting you expand without worrying about dependency trees and inheritance. The three main aspects of an ECS framework are of course Entities, Components, and Systems.
 
@@ -9,8 +9,6 @@ EntityPlus requires C++14 conformance, and was mainly developed on MSVC. It has 
 * MSVC 2015 update 3
 * Clang 3.5.0
 * GCC 5.3.0
-
-The only other requirement is boost.
 
 ### Components
 Components contain information. This can be anything, such as health, a piece of armor, or a status effect. An example component could be the identity of a person, which could be modeled like this:
