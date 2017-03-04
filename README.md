@@ -126,14 +126,14 @@ Entity Count | Iterations | Probability | EntityPlus | EntityX
 n = amount of entities
 
 Entity:
-has_(component/entity) = O(1)
+has_(component/tag) = O(1)
 (add/remove)_component = O(n)
 set_tag = O(n)
 get_component = O(log n)
 get_status = O(log n)
 
 Entity Manager:
-(create/remove)_entity = O(n)
+(create/delete)_entity = O(n)
 get_entities = O(n)
 for_each = O(n)
 ```
