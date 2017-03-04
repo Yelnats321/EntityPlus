@@ -109,7 +109,8 @@ void ENTITY_MANAGER_SPEC::remove_bit(entity_t &local, entity_t &foreign) {
 
 ENTITY_MANAGER_TEMPS
 template <typename Component, typename... Args>
-std::pair<Component&, bool> ENTITY_MANAGER_SPEC::add_component(entity_t &entity, const std::tuple<Args...> &args) {
+std::pair<Component&, bool> 
+ENTITY_MANAGER_SPEC::add_component(entity_t &entity, const std::tuple<Args...> &args) {
 #if NDEBUG
 	auto &myEnt = *entities.find(entity);
 #else

@@ -85,9 +85,7 @@ public:
 		using IsConstructible = std::is_constructible<Component, Args&&...>;
 		auto argTuple = std::forward_as_tuple(std::forward<Args>(args)...);
 		return meta::eval_if(
-			[&](auto) {
-				return entityManager->template add_component<Component>(*this, argTuple);
-			},
+			[&](auto) { return entityManager->template add_component<Component>(*this, argTuple); },
 			meta::fail_cond<IsCompValid>([](auto delay) {
 			static_assert(delay, "add_component called with invalid component");
 			return std::declval<std::pair<Component&, bool>>();}),
