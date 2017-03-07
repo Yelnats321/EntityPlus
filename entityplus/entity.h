@@ -27,7 +27,6 @@ class entity_manager {
 };
 
 enum class entity_status {
-	INVALID_MANAGER,
 	NOT_FOUND,
 	STALE,
 	OK

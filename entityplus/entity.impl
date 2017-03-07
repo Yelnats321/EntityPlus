@@ -33,9 +33,6 @@ void ENTITY_MANAGER_SPEC::report_error(error_code_t errCode, const char * msg) c
 
 ENTITY_MANAGER_TEMPS
 auto ENTITY_MANAGER_SPEC::get_entity_and_status(const entity_t &entity) const noexcept -> std::pair<const entity_t*, entity_status> {
-	if (entity.entityManager != this)
-		return{nullptr, entity_status::INVALID_MANAGER};
-
 	auto local = entities.find(entity);
 	if (local == entities.end())
 		return{nullptr, entity_status::NOT_FOUND};
@@ -51,9 +48,6 @@ ENTITY_MANAGER_TEMPS
 auto ENTITY_MANAGER_SPEC::assert_entity(const entity_t &entity) const -> const entity_t&{
 	auto entStatus = get_entity_and_status(entity);
 	switch (entStatus.second) {
-	case entity_status::INVALID_MANAGER:
-		report_error(error_code_t::BAD_ENTITY,
-					 "Entity not owned by this manager");
 	case entity_status::NOT_FOUND:
 		report_error(error_code_t::BAD_ENTITY,
 					 "Entity can't be found in manager. Are you sure it's valid?");
