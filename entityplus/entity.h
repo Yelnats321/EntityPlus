@@ -219,7 +219,7 @@ public:
 
 	entity_manager() = default;
 	entity_manager(const entity_manager &) = delete;
-	entity_manager& operator = (const entity_manager &) = delete;
+	entity_manager& operator=(const entity_manager &) = delete;
 
 	entity_t create_entity();
 	void delete_entity(const entity_t &);

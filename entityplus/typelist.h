@@ -12,7 +12,7 @@
 
 namespace entityplus {
 namespace detail {
-	using entity_id_t = std::uintmax_t;
+using entity_id_t = std::uintmax_t;
 }
 
 template <typename... Ts>
