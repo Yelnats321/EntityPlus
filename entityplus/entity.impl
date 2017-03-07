@@ -96,9 +96,8 @@ void ENTITY_MANAGER_SPEC::remove_bit(entity_t &local, entity_t &foreign) {
 	}
 
 	auto &ecc = entityCount[meta::typelist_index_v<T, comp_tag_t>];
-	auto ec = ecc.find(local);
-	assert(ec != ecc.end());
-	ecc.erase(ec);
+	auto ece = ecc.erase(local);
+	(void)ece; assert(ece == 1);
 }
 
 ENTITY_MANAGER_TEMPS
@@ -141,9 +140,8 @@ bool ENTITY_MANAGER_SPEC::remove_component(entity_t &entity) {
 	}
 
 	auto &container = meta::get<Component, component_list_t>(components);
-	auto comp = container.find(entity.id);
-	assert(comp != container.end());
-	container.erase(comp);
+	auto ce = container.erase(entity.id);
+	(void)ce; assert(ce == 1);
 
 	remove_bit<Component>(myEnt, entity);
 
@@ -203,28 +201,25 @@ void ENTITY_MANAGER_SPEC::delete_entity(const entity_t &entity) {
 
 	meta::for_each(components, [&](auto &container, std::size_t idx) {
 		if (entity.compTags[idx]) {
-			auto comp = container.find(entity.id);
-			assert(comp != container.end());
-			container.erase(comp);
+			auto ce = container.erase(entity.id);
+			(void)ce; assert(ce == 1);
 
 			auto &ecc = entityCount[idx];
-			auto ec = ecc.find(entity);
-			assert(ec != ecc.end());
-			ecc.erase(ec);
+			auto ece = ecc.erase(entity);
+			(void)ece; assert(ece == 1);
 		}
 	});
 	
 	for (std::size_t i = 0; i < TagCount; ++i) {
 		if (entity.compTags[i + ComponentCount]) {
 			auto &ecc = entityCount[i + ComponentCount];
-			auto ec = ecc.find(entity);
-			assert(ec != ecc.end());
-			ecc.erase(ec);
+			auto ece = ecc.erase(entity);
+			(void)ece;
+			assert(ece == 1);
 		}
 	}
-	auto ers = entities.erase(entity);
-	(void)ers;
-	assert(ers == 1);
+	auto ers = entities.erase(entity); 
+	(void)ers; assert(ers == 1);
 }
 
 ENTITY_MANAGER_TEMPS
@@ -316,7 +311,7 @@ template <typename T, typename... Us> struct make_iters<T, meta::typelist<Us...>
 template <typename Func, typename Func2, typename T, typename... Ts, std::size_t... Is>
 void deref_and_invoke_impl(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iters,
 						   std::index_sequence<Is...>) {
-	(void)func2; (void)iters;
+	(void)func; (void)func2; (void)iters;
 	func(std::forward<T>(t), func2(std::get<Is>(iters))...);
 }
 
