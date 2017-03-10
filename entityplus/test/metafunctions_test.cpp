@@ -77,7 +77,7 @@ TEST_CASE("for_each", "[metafunctions]") {
 	SECTION("triple with ref") {
 		auto tup = tupOriginal;
 		for_each(tup, [](auto &x, std::size_t i) {
-			x = x*3 + i;
+			x = x*3 + (int)i;
 		});
 		REQUIRE(std::get<int>(tupOriginal) * 3 == std::get<int>(tup));
 		REQUIRE(std::get<float>(tupOriginal) * 3 + 1 == std::get<float>(tup));

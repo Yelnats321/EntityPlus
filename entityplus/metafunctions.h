@@ -44,6 +44,7 @@ const T& as_const(T &t) {
 namespace detail {
 template <typename T, typename... Args, std::size_t... Is>
 T from_tuple_impl(const std::tuple<Args...> &args, std::index_sequence<Is...>) {
+	(void)args;
 	return T(std::get<Is>(args)...);
 }
 }

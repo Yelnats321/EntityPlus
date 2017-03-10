@@ -59,7 +59,7 @@ private:
 	entity_manager_t *entityManager;
 	meta::type_bitset<comp_tag_t> compTags;
 public:
-	entity(private_access, detail::entity_id_t id, entity_manager_t *entityManager):
+	entity(private_access, detail::entity_id_t id, entity_manager_t *entityManager) noexcept:
 		id(id), entityManager(entityManager) {}
 
 	entity_status get_status() const noexcept {
