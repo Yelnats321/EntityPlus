@@ -88,15 +88,19 @@ assert(ent.get_tag<player_tag>() == true);
 ```
 
 ### Events
-Events are orthogonal to ECS, but when used in conjunction they create better decoupled code. You can register an event handler and dispatch events which informs all the handlers.
+Events are orthogonal to ECS, but when used in conjunction they create better decoupled code. You can register an event handler and dispatch events which informs all the subscribers.
 
 ```c++
 event_manager<entity_created, entity_destoryed> eventManager;
-eventManager.register_handler<entity_created>([](const auto &) {
+subscriber_handle<entity_created> handle;
+handle = eventManager.subscribe<entity_created>([](const auto &) {
     std::cout << "Entity was created\n";
 });
 eventManager.broadcast(entity_created{});
+handle.unsubscribe();
 ```
+
+Subscriber handles are ways of keeping track of a subscribers. They do not rely on the type of event manager, unlike entities, and can be stored just like any other object. They do not get invalidated either.
 
 ### Exceptions and Error Codes
 EntityPlus can be configured to use either exceptions or error codes. The two types of exceptions are `invalid_component` and `bad_entity`, with corresponding error codes. The former is thrown when `get_component()` is called for an entity that does not own a component of that type. The latter is thrown when an entity is stale, belongs to another entity manager, or when the entity has already been deleted. These states can be queried by `get_status()` which returns a corresponding `entity_status`.
@@ -245,3 +249,30 @@ Calls `func` for each entity that has all the components/tags in `Ts...`. The ar
 
 ####`entity` vs `entity_t`
 `entity` is the template class while `entity_t` is the template class with the same template arguments as the `entity_manager`. That is, `entity_t = entity<component_list, tag_list>`.
+
+
+### Event Manager:
+```c++
+template <typename Event, typename Func>
+subscriber_handle<Event> subscribe(Func && func);
+```
+`Returns`: A `subscriber_handle` for the `func`.
+
+
+```c++
+template <typename Event>
+void broadcast(const Event &event) const
+```
+
+
+### Subscriber Handle
+```c++
+bool isValid() const
+```
+`Returns`: `true` if the handle holds onto a subscribed function, `false` otherwise.
+
+
+```c++
+bool unsubscribe()
+```
+`Returns`: `true` if the subscribed function was unsubscribed, `false` if there is no subscribed function.
