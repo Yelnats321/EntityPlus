@@ -28,6 +28,7 @@ class entity_manager {
 };
 
 enum class entity_status {
+	UNINITIALIZED,
 	NOT_FOUND,
 	STALE,
 	OK
@@ -66,7 +67,7 @@ public:
 		: id(id), entityManager(entityManager) {}
 
 	entity_status get_status() const {
-		assert(entityManager);
+		if (!entityManager) return entity_status::UNINITIALIZED;
 		return entityManager->get_entity_and_status(*this).second;
 	}
 
