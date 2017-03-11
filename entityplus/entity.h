@@ -62,12 +62,12 @@ public:
 	entity(private_access, detail::entity_id_t id, entity_manager_t *entityManager) noexcept:
 		id(id), entityManager(entityManager) {}
 
-	entity_status get_status() const noexcept {
+	entity_status get_status() const {
 		return entityManager->get_entity_and_status(*this).second;
 	}
 
 	template <typename Component>
-	inline bool has_component() const noexcept {
+	inline bool has_component() const {
 		using IsCompValid = meta::typelist_has_type<Component, component_t>;
 		return meta::eval_if(
 			[&](auto) { return meta::get<Component>(compTags); },
@@ -124,7 +124,7 @@ public:
 	}
 
 	template <typename Tag>
-	inline bool has_tag() const noexcept {
+	inline bool has_tag() const {
 		using IsTagValid = meta::typelist_has_type<Tag, tag_t>;
 		return meta::eval_if(
 			[&](auto) { return meta::get<Tag>(compTags); },
@@ -184,7 +184,7 @@ private:
 
 	[[noreturn]] void report_error(error_code_t errCode, const char * error) const;
 
-	std::pair<const entity_t*, entity_status> get_entity_and_status(const entity_t &entity) const noexcept;
+	std::pair<const entity_t*, entity_status> get_entity_and_status(const entity_t &entity) const;
 #if !NDEBUG
 	const entity_t & assert_entity(const entity_t &entity) const;
 	entity_t & assert_entity(const entity_t &entity) {
@@ -212,7 +212,7 @@ private:
 	void remove_bit(entity_t &local, entity_t &foreign);
 
 	template <typename... Ts>
-	std::size_t get_smallest_idx() noexcept;
+	std::size_t get_smallest_idx();
 public:
 	using return_container = std::vector<entity_t>;
 
@@ -225,7 +225,7 @@ public:
 
 	// Gets all entities that have the components and tags provided
 	template<typename... Ts>
-	return_container get_entities() noexcept;
+	return_container get_entities();
 
 	template<typename... Ts, typename Func>
 	void for_each(Func && func);

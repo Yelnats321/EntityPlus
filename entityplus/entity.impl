@@ -32,7 +32,7 @@ void ENTITY_MANAGER_SPEC::report_error(error_code_t errCode, const char * msg) c
 }
 
 ENTITY_MANAGER_TEMPS
-auto ENTITY_MANAGER_SPEC::get_entity_and_status(const entity_t &entity) const noexcept -> std::pair<const entity_t*, entity_status> {
+auto ENTITY_MANAGER_SPEC::get_entity_and_status(const entity_t &entity) const -> std::pair<const entity_t*, entity_status> {
 	auto local = entities.find(entity);
 	if (local == entities.end())
 		return{nullptr, entity_status::NOT_FOUND};
@@ -224,7 +224,7 @@ void ENTITY_MANAGER_SPEC::delete_entity(const entity_t &entity) {
 
 ENTITY_MANAGER_TEMPS
 template <typename... Ts>
-std::size_t ENTITY_MANAGER_SPEC::get_smallest_idx() noexcept {
+std::size_t ENTITY_MANAGER_SPEC::get_smallest_idx() {
 	std::array<std::size_t, sizeof...(Ts)> sortedThings = {meta::typelist_index_v<Ts, comp_tag_t>...};
 	return *std::min_element(sortedThings.begin(), sortedThings.end(), [&](const auto & lhs, const auto &rhs) {
 		return entityCount[lhs].size() < entityCount[rhs].size();
@@ -252,7 +252,7 @@ auto make_key() {
 
 ENTITY_MANAGER_TEMPS
 template<typename... Ts>
-auto ENTITY_MANAGER_SPEC::get_entities() noexcept -> return_container {
+auto ENTITY_MANAGER_SPEC::get_entities() -> return_container {
 	using IsEmpty = std::integral_constant<bool, sizeof...(Ts) != 0>;
 	using IsTypelistUnique = meta::is_typelist_unique<meta::typelist<Ts...>>;
 	using IsTypelistValid = meta::and_all<meta::typelist_has_type<Ts, comp_tag_t>...>;

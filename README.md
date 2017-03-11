@@ -145,14 +145,14 @@ for_each = O(n)
 ## Reference
 ### Entity:
 ```c++
-entity_status get_status() const noexcept
+entity_status get_status() const 
 ```
 `Returns`: Status of `entity`, one of `OK`, `INVALID_MANAGER`, `NOT_FOUND`, or `STALE`.
 
 
 ```c++
 template <typename Component>
-bool has_component() const noexcept
+bool has_component() const 
 ```
 `Returns`: `bool` indicating whether the `entity` has the `Component`. 
 
@@ -196,7 +196,7 @@ template <typename Component>
 
 ```c++
 template <typename Tag>
-bool has_tag() const noexcept 
+bool has_tag() const 
 ```
 `Returns`: `bool` indicating if the `entity` has `Tag`.
 
@@ -236,7 +236,7 @@ Can invalidate a `for_each`.
 
 ```c++
 template<typename... Ts>
-return_container get_entities() noexcept
+return_container get_entities() 
 ```
 `Returns`: `return_container` of all the entities that have all the components/tags in `Ts...`.
 
