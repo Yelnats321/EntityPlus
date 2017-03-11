@@ -265,6 +265,10 @@ public:
 	}
 #endif
 };
+
+struct control_block_t {
+	bool breakout = false;
+};
 }
 
 #include "entity.impl"

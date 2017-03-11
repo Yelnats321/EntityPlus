@@ -31,6 +31,9 @@ using not_ = std::integral_constant<bool, !T::value>;
 template <typename T, typename U>
 using and_ = std::integral_constant<bool, T::value && U::value>;
 
+template <typename T, typename U>
+using or_ = std::integral_constant<bool, T::value || U::value>;
+
 template <typename T>
 const T& as_const(T &t) {
 	return t;

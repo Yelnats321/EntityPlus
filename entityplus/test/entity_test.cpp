@@ -26,14 +26,17 @@ public:
 
 TEST_CASE("entity", "[entity]") {
 	entity_manager<component_list<>, tag_list<>> em;
+	using entity_t = entity_manager<component_list<>, tag_list<>>::entity_t;
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
 	em.set_error_callback(error_handler);
 #endif
+	entity_t ent;
+	REQUIRE(ent.get_status() == entity_status::UNINITIALIZED);
 	REQUIRE(em.get_entities<>().size() == 0);
 	em.for_each<>([](auto) {
 		REQUIRE(false);
 	});
-	auto ent = em.create_entity();
+	ent = em.create_entity();
 	REQUIRE(ent.get_status() == entity_status::OK);
 	em.get_entities<>();
 	REQUIRE(em.get_entities<>().size() == 1);
@@ -250,4 +253,29 @@ TEST_CASE("for_each entity", "[entity]") {
 	em.for_each<A, B, TA>([&](auto, auto &, auto &) {
 		REQUIRE(false);
 	});
+}
+
+TEST_CASE("for_each with control", "[entity]") {
+	using comps = component_list<A, B, C>;
+	using tags = tag_list<struct TA, struct TB, struct TC>;
+
+	entity_manager<comps, tags> em;
+#ifdef ENTITYPLUS_NO_EXCEPTIONS
+	em.set_error_callback(error_handler);
+#endif
+	em.create_entity().set_tag<TA>(true);
+	em.create_entity().set_tag<TA>(true);
+	em.create_entity().set_tag<TA>(true);
+
+	int count = 0;
+	em.for_each<TA>([&](auto, auto& control) {
+		if (++count == 1) control.breakout = true;
+	});
+	REQUIRE(count == 1);
+	count = 0;
+
+	em.for_each<TA>([&](auto) {
+		++count == 1;
+	});
+	REQUIRE(count == 3);
 }
