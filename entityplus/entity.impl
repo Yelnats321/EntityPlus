@@ -221,13 +221,17 @@ void ENTITY_MANAGER_SPEC::delete_entity(const entity_t &entity) {
 	(void)ers; assert(ers == 1);
 }
 
+
+
 ENTITY_MANAGER_TEMPS
 template <typename... Ts>
-std::size_t ENTITY_MANAGER_SPEC::get_smallest_idx() {
+auto ENTITY_MANAGER_SPEC::get_smallest_idx() ->entity_container& {
+	if (sizeof...(Ts) == 0) return entities;
+
 	std::array<std::size_t, sizeof...(Ts)> sortedThings = {meta::typelist_index_v<Ts, comp_tag_t>...};
-	return *std::min_element(sortedThings.begin(), sortedThings.end(), [&](const auto & lhs, const auto &rhs) {
+	return entityCount[*std::min_element(sortedThings.begin(), sortedThings.end(), [&](const auto & lhs, const auto &rhs) {
 		return entityCount[lhs].size() < entityCount[rhs].size();
-	});
+	})];
 }
 
 namespace detail {
@@ -252,24 +256,25 @@ auto make_key() {
 ENTITY_MANAGER_TEMPS
 template<typename... Ts>
 auto ENTITY_MANAGER_SPEC::get_entities() -> return_container {
-	using IsEmpty = std::integral_constant<bool, sizeof...(Ts) != 0>;
-	using IsTypelistUnique = meta::is_typelist_unique<meta::typelist<Ts...>>;
+	constexpr auto ArgSize = sizeof...(Ts);
+	using Typelist = meta::typelist<Ts...>;
+	using IsTypelistUnique = meta::is_typelist_unique<Typelist>;
 	using IsTypelistValid = meta::and_all<meta::typelist_has_type<Ts, comp_tag_t>...>;
 	return meta::eval_if(
 		[&](auto) {
-		auto smallestIdx = get_smallest_idx<Ts...>();
+		if (ArgSize == 0) return return_container{entities.begin(), entities.end()};
+		auto smallest = this->get_smallest_idx<Ts...>();
 
 		return_container ret;
-		ret.reserve(entityCount[smallestIdx].size());
+		ret.reserve(smallest.size());
 
-		auto key = detail::make_key<meta::typelist<Ts...>, comp_tag_t>();
+		auto key = detail::make_key<Typelist, comp_tag_t>();
 
-		for (auto it = entityCount[smallestIdx].begin(); it != entityCount[smallestIdx].end(); ++it) {
-			if ((it->compTags & key) == key)
-				ret.push_back(*it);
+		for (const auto &ent : smallest) {
+			if ((ent.compTags & key) == key)
+				ret.push_back(ent);
 		}
 		return ret; },
-		meta::fail_cond<IsEmpty>([&](auto) {return return_container{entities.begin(), entities.end()}; }),
 		meta::fail_cond<IsTypelistUnique>([](auto delay) {
 		static_assert(delay, "get_entitites called with a non-unique typelist");
 		return std::declval<return_container>(); }),
@@ -324,7 +329,6 @@ void deref_and_invoke(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iter
 ENTITY_MANAGER_TEMPS
 template<typename... Ts, typename Func>
 void ENTITY_MANAGER_SPEC::for_each(Func && func) {
-	using IsEmpty = std::integral_constant<bool, sizeof...(Ts) != 0>;
 	using Typelist = meta::typelist<Ts...>;
 	using ComponentsPart = meta::typelist_intersection_t<Typelist, component_t>;
 	using IsFunc = std::is_constructible<std::function<typename detail::func_sig<entity_t, ComponentsPart>::type>, Func>;
@@ -332,12 +336,12 @@ void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 	using IsTypelistValid = meta::and_all<meta::typelist_has_type<Ts, comp_tag_t>...>;
 	meta::eval_if(
 		[&](auto) {
-		auto smallestIdx = get_smallest_idx<Ts...>();
-		auto smallestIdxSize = entityCount[smallestIdx].size();
+		auto smallest = this->get_smallest_idx<Ts...>();
+		auto smallestIdxSize = smallest.size();
 		if (smallestIdxSize == 0) return;
 		auto iters = detail::make_iters<component_list_t, ComponentsPart>{}(components, smallestIdxSize, maxLinearSearchDistance);
 		auto key = detail::make_key<Typelist, comp_tag_t>();
-		for (const auto &ent : entityCount[smallestIdx]) {
+		for (const auto &ent : smallest) {
 			if ((ent.compTags & key) != key) continue;
 			meta::for_each(iters, [&](auto &iter, std::size_t) {
 				if (iter.useLinear) {
@@ -359,15 +363,7 @@ void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 		meta::fail_cond<IsTypelistValid>([](auto delay) {
 		static_assert(delay, "for_each called with invalid typelist");}),
 		meta::fail_cond<IsFunc>([](auto delay) {
-		static_assert(delay, "for_each called with invalid callable");}),
-		meta::fail_cond<IsEmpty>([&](auto) {
-		auto iters = detail::make_iters<component_list_t, ComponentsPart>{}(components, entities.size(), maxLinearSearchDistance);
-		for (const auto &ent : entities) {
-			detail::deref_and_invoke(func,
-									 [](auto &iter) -> auto & { return iter.pos->second; },
-									 ent, iters);
-		}
-		}));
+		static_assert(delay, "for_each called with invalid callable");}));
 }
 
 #undef ENTITY_MANAGER_TEMPS

@@ -224,7 +224,7 @@ private:
 	void remove_bit(entity_t &local, entity_t &foreign);
 
 	template <typename... Ts>
-	std::size_t get_smallest_idx();
+	entity_container& get_smallest_idx();
 public:
 	using return_container = std::vector<entity_t>;
 

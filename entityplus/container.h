@@ -21,17 +21,17 @@ public:
 	using value_type = Key;
 	using key_compare = Compare;
 	using value_compare = Compare;
-	using container_type::size_type;
-	using container_type::difference_type;
-	using container_type::allocator_type;
-	using container_type::reference;
-	using container_type::const_reference;
-	using container_type::pointer;
-	using container_type::const_pointer;
-	using container_type::iterator;
-	using container_type::const_iterator;
-	using container_type::reverse_iterator;
-	using container_type::const_reverse_iterator;
+	using typename container_type::size_type;
+	using typename container_type::difference_type;
+	using typename container_type::allocator_type;
+	using typename container_type::reference;
+	using typename container_type::const_reference;
+	using typename container_type::pointer;
+	using typename container_type::const_pointer;
+	using typename container_type::iterator;
+	using typename container_type::const_iterator;
+	using typename container_type::reverse_iterator;
+	using typename container_type::const_reverse_iterator;
 
 	using container_type::begin;
 	using container_type::cbegin;
@@ -94,6 +94,7 @@ public:
 	using value_type = std::pair<Key, T>;
 	using container_type = std::vector<value_type, Allocator>;
 	using key_compare = Compare;
+
 	struct value_compare {
 	protected:
 		key_compare keyComp;
@@ -103,21 +104,22 @@ public:
 			return keyComp(lhs.first, rhs.first);
 		}
 	};
+
 private:
 	key_compare keyComp;
 	value_compare valComp{keyComp};
 public:
-	using container_type::size_type;
-	using container_type::difference_type;
-	using container_type::allocator_type;
-	using container_type::reference;
-	using container_type::const_reference;
-	using container_type::pointer;
-	using container_type::const_pointer;
-	using container_type::iterator;
-	using container_type::const_iterator;
-	using container_type::reverse_iterator;
-	using container_type::const_reverse_iterator;
+	using typename container_type::size_type;
+	using typename container_type::difference_type;
+	using typename container_type::allocator_type;
+	using typename container_type::reference;
+	using typename container_type::const_reference;
+	using typename container_type::pointer;
+	using typename container_type::const_pointer;
+	using typename container_type::iterator;
+	using typename container_type::const_iterator;
+	using typename container_type::reverse_iterator;
+	using typename container_type::const_reverse_iterator;
 
 	using container_type::begin;
 	using container_type::cbegin;
