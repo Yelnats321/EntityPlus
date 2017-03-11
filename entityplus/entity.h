@@ -12,6 +12,7 @@
 #include <type_traits>
 #include <array>
 #include <functional>
+#include <cassert>
 
 #include "typelist.h"
 #include "metafunctions.h"
@@ -56,18 +57,22 @@ private:
 	};
 
 	detail::entity_id_t id;
-	entity_manager_t *entityManager;
+	entity_manager_t *entityManager = nullptr;
 	meta::type_bitset<comp_tag_t> compTags;
 public:
-	entity(private_access, detail::entity_id_t id, entity_manager_t *entityManager) noexcept:
-		id(id), entityManager(entityManager) {}
+	entity() = default;
+
+	entity(private_access, detail::entity_id_t id, entity_manager_t *entityManager) noexcept
+		: id(id), entityManager(entityManager) {}
 
 	entity_status get_status() const {
+		assert(entityManager);
 		return entityManager->get_entity_and_status(*this).second;
 	}
 
 	template <typename Component>
 	inline bool has_component() const {
+		assert(entityManager);
 		using IsCompValid = meta::typelist_has_type<Component, component_t>;
 		return meta::eval_if(
 			[&](auto) { return meta::get<Component>(compTags); },
@@ -80,6 +85,7 @@ public:
 	// Adds the component if it doesn't exist, otherwise returns the existing component
 	template <typename Component, typename... Args>
 	inline std::pair<Component&, bool> add_component(Args&&... args) {
+		assert(entityManager);
 		using IsCompValid = meta::typelist_has_type<Component, component_t>;
 		using IsConstructible = std::is_constructible<Component, Args&&...>;
 		auto argTuple = std::forward_as_tuple(std::forward<Args>(args)...);
@@ -97,6 +103,7 @@ public:
 	// Returns if the component was removed or not (in the case that it didn't exist)
 	template <typename Component>
 	inline bool remove_component() {
+		assert(entityManager);
 		using IsCompValid = meta::typelist_has_type<Component, component_t>;
 		return meta::eval_if(
 			[&](auto) { return entityManager->template remove_component<Component>(*this); },
@@ -109,6 +116,7 @@ public:
 	// Must have component in order to get it, otherwise you have a invalid_component exception
 	template <typename Component>
 	inline const Component& get_component() const {
+		assert(entityManager);
 		using IsCompValid = meta::typelist_has_type<Component, component_t>;
 		return meta::eval_if(
 			[&](auto) -> decltype(auto) { return entityManager->template get_component<Component>(*this); },
@@ -125,6 +133,7 @@ public:
 
 	template <typename Tag>
 	inline bool has_tag() const {
+		assert(entityManager);
 		using IsTagValid = meta::typelist_has_type<Tag, tag_t>;
 		return meta::eval_if(
 			[&](auto) { return meta::get<Tag>(compTags); },
@@ -137,6 +146,7 @@ public:
 	// returns the previous tag value
 	template <typename Tag>
 	inline bool set_tag(bool set) {
+		assert(entityManager);
 		using IsTagValid = meta::typelist_has_type<Tag, tag_t>;
 		return meta::eval_if(
 			[&](auto) { return entityManager->template set_tag<Tag>(*this, set); },
@@ -147,9 +157,11 @@ public:
 	}
 
 	inline bool operator<(const entity &other) const {
+		assert(entityManager && entityManager == other.entityManager);
 		return id < other.id;
 	}
 	inline bool operator==(const entity &other) const {
+		assert(entityManager && entityManager == other.entityManager);
 		return id == other.id;
 	}
 };

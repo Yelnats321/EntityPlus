@@ -4,7 +4,6 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <algorithm>
-#include <cassert>
 #include <initializer_list>
 
 namespace entityplus {
