@@ -110,6 +110,10 @@ To enable error codes, you must `#define ENTITYPLUS_NO_EXCEPTIONS` and `set_erro
 ## Performance
 EntityPlus was designed with performance in mind. Almost all information is stored contiguously (through `flat_map`s and `flat_set`s) and the code has been optimized for iteration (over insertion/deletion) as that is the most common operation when using ECS. 
 
+There is currently little tuning available, but additional enhancements are planned. Entity manager provides a `set_max_linear_dist` option. When iterating using `for_each`, the relative occurrence of a component is calculated against the maximum possible amounts of iterated entities. If this number is small, then a  linear search is used to find consecutive entities. Otherwise, a binary search is used instead.
+
+For example, say there are 1000 entities. 500 of these entities have component A, but only 10 have component B. We call `for_each<A,B>`. Since we know the maximum amount of entities we will iterate is 10, we calculate the relative occurrence of these entities in `A`. 500/10 = 50, which means we are likely to iterate over 50 entities in a linear search before we find an entity that has both `A` and `B`. If we had `set_max_linear_dist(55)` then we would do a linear search through the entities that contain `A`. If instead we had `set_max_linear_dist(25)`, we would do a binary search. The default value is 64, and can be queried with `get_max_linear_dist()`.
+
 ### Benchmarks
 I've benchmarked EntityPlus against EntityX, another ECS library for C++11 on my Lenovo Y-40 which has an i7-4510U @ 2.00 GHz. Compiled using MSVC 2015 update 3 with hotfix on x64. The source for the benchmarks can be viewed [here](entityplus/benchmark.cpp). The time to add the components was very negligible and unlikely to impact performance much in the long run unless you're adding/removing components more than you are iterating over them.
 
@@ -246,6 +250,17 @@ template<typename... Ts, typename Func>
 void for_each(Func && func)
 ```
 Calls `func` for each entity that has all the components/tags in `Ts...`. The arguments supplied to `func` are the entity, as well as all the components in `Ts...`.
+
+
+```c++
+std::size_t get_max_linear_dist() const
+```
+
+
+```c++
+void set_max_linear_dist(std::size_t)
+```
+
 
 ####`entity` vs `entity_t`
 `entity` is the template class while `entity_t` is the template class with the same template arguments as the `entity_manager`. That is, `entity_t = entity<component_list, tag_list>`.
