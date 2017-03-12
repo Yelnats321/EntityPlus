@@ -151,7 +151,7 @@ for_each = O(n)
 ```c++
 entity_status get_status() const 
 ```
-`Returns`: Status of `entity`, one of `OK`, `INVALID_MANAGER`, `NOT_FOUND`, or `STALE`.
+`Returns`: Status of `entity`, one of `OK`, `UNINITIALIZED`, `NOT_FOUND`, or `STALE`.
 
 
 ```c++
