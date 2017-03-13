@@ -74,9 +74,22 @@ for (const auto &ent : ents) {
 The second, and faster way, of manipulating entities is by using lambdas (or any `Callable` really).
 ```c++
 entityManager.for_each<identity>([](auto ent, auto &id) {
-    std::cout << id.name << "\n";
+    std::cout << id.name_ << "\n";
 }
 ```
+
+You can supply as many tags/components as you want to both methods, so if you need all entities with `tag1` and `tag2` you can simply do `get_entities<tag1, tag2>()` or `for_each<tag1, tag2>(...)`. In addition, `for_each` has an optional control parameter, which you can modify to break out of the for loop early.
+
+```c++
+entity_t secretAgent;
+entityManager.for_each<tag1, identity>([&](auto ent, auto &id, control_block_t &control) {
+	if (id.name_ == "Secret Agent") {
+		secretAgent = ent;
+		control.breakout = true;
+	}
+}
+```
+
 That's about it! You can obviously wrap these methods in your own system classes, but having specific support for systems felt artificial and didn't add any impactful or useful changes to the flow of usage.
 
 ### Tags
