@@ -34,7 +34,7 @@ ENTITY_MANAGER_TEMPS
 auto ENTITY_MANAGER_SPEC::get_entity_and_status(const entity_t &entity) const -> std::pair<const entity_t*, entity_status> {
 	auto local = entities.find(entity);
 	if (local == entities.end())
-		return{nullptr, entity_status::NOT_FOUND};
+		return{nullptr, entity_status::DELETED};
 
 	if (entity.compTags != local->compTags)
 		return{nullptr, entity_status::STALE};
@@ -47,12 +47,12 @@ ENTITY_MANAGER_TEMPS
 auto ENTITY_MANAGER_SPEC::assert_entity(const entity_t &entity) const -> const entity_t&{
 	auto entStatus = get_entity_and_status(entity);
 	switch (entStatus.second) {
-	case entity_status::NOT_FOUND:
+	case entity_status::DELETED:
 		report_error(error_code_t::BAD_ENTITY,
-					 "Entity can't be found in manager. Are you sure it's valid?");
+					 "Entity has been deleted.");
 	case entity_status::STALE:
 		report_error(error_code_t::BAD_ENTITY,
-					 "Entity's components/tags are stale. Don't store stale entities");
+					 "Entity's components/tags are stale. Don't store stale entities.");
 	case entity_status::OK:
 		return *entStatus.first;
 	}

@@ -46,7 +46,7 @@ TEST_CASE("entity", "[entity]") {
 	});
 	REQUIRE(count == 1);
 	em.delete_entity(ent);
-	REQUIRE(ent.get_status() == entity_status::NOT_FOUND);
+	REQUIRE(ent.get_status() == entity_status::DELETED);
 	REQUIRE(em.get_entities<>().size() == 0);
 
 	entity_manager<component_list<>, tag_list<>> em2;
@@ -275,7 +275,7 @@ TEST_CASE("for_each with control", "[entity]") {
 	count = 0;
 
 	em.for_each<TA>([&](auto) {
-		++count == 1;
+		++count;
 	});
 	REQUIRE(count == 3);
 }

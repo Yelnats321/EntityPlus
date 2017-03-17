@@ -29,7 +29,7 @@ class entity_manager {
 
 enum class entity_status {
 	UNINITIALIZED,
-	NOT_FOUND,
+	DELETED,
 	STALE,
 	OK
 };
@@ -38,7 +38,7 @@ namespace detail {
 template <typename Components, typename Tags>
 class entity {
 	static_assert(meta::delay_v<Components, Tags>,
-				  "Don't create entities manually, use entity_manager::create_entity() instead");
+				  "Don't create entities manually, use entity_manager::entity_t or create_entity() instead");
 };
 
 template <typename... Components, typename... Tags>

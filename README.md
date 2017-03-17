@@ -164,7 +164,7 @@ for_each = O(n)
 ```c++
 entity_status get_status() const 
 ```
-`Returns`: Status of `entity`, one of `OK`, `UNINITIALIZED`, `NOT_FOUND`, or `STALE`.
+`Returns`: Status of `entity`, one of `OK`, `UNINITIALIZED`, `DELETED`, or `STALE`.
 
 
 ```c++
@@ -188,6 +188,8 @@ std::pair<Component&, bool> add_component(Args&&... args)
 
 Can invalidate references to all components of type `Component`, as well as a `for_each` involving `Component`.
 
+Can turn entity copies `STALE`.
+
 
 ```c++
 template <typename Component>
@@ -198,6 +200,8 @@ bool remove_component()
 `Prerequisites`: `entity` is `OK`.
 
 Can invalidate references to all components of type `Component`, as well as a `for_each` involving `Component`.
+
+Can turn entity copies `STALE`.
 
 
 ```c++
@@ -230,7 +234,9 @@ bool set_tag(bool set)
 
 `Throws`: `bad_entity` if the `entity` is not `OK`.
 
-Can  invalidate a `for_each` involving `Tag`, only if `set != set_tag<Tag>(set)`.
+Can invalidate a `for_each` involving `Tag`, only if `set != set_tag<Tag>(set)`.
+
+Can turn entity copies `STALE`.
 
 ### Entity Manager:
 ```c++
@@ -249,6 +255,8 @@ void delete_entity(const entity_t &entity)
 `Throws`: `bad_entity` if the `entity` is not `OK`.
 
 Can invalidate a `for_each`.
+
+Turns entity copies 'DELETED'.
 
 
 ```c++
