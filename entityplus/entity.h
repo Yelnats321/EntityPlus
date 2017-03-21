@@ -143,7 +143,7 @@ private:
 	entity_container entities;
 	std::array<entity_container, CompTagCount> entityCount;
 	std::size_t maxLinearSearchDistance = 64;
-	entity_event_manager_t *eventManager = nullptr;
+	const entity_event_manager_t *eventManager = nullptr;
 
 	[[noreturn]] void report_error(error_code_t errCode, const char * error) const;
 
@@ -202,7 +202,7 @@ public:
 	}
 
 	template <typename... Events>
-	void set_event_manager(event_manager<component_list_t, tag_list_t, Events...> &em);
+	void set_event_manager(const event_manager<component_list_t, tag_list_t, Events...> &em);
 
 	void clear_event_manager() {
 		eventManager = nullptr;

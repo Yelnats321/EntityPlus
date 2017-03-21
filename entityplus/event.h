@@ -182,7 +182,7 @@ class event_manager<component_list<Components...>, tag_list<Tags...>, Events...>
 	template <typename Event>
 	void unsubscribe(detail::subscriber_handle_id_t id);
 
-	auto & get_entity_event_manager() {
+	const auto & get_entity_event_manager() const {
 		return entityEventManager;
 	}
 public:

@@ -558,7 +558,7 @@ void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 
 ENTITY_MANAGER_TEMPS
 template <typename... Events>
-void ENTITY_MANAGER_SPEC::set_event_manager(event_manager<component_list_t, tag_list_t, Events...> &em) {
+void ENTITY_MANAGER_SPEC::set_event_manager(const event_manager<component_list_t, tag_list_t, Events...> &em) {
 	eventManager = &em.get_entity_event_manager();
 }
 
