@@ -409,7 +409,7 @@ auto ENTITY_MANAGER_SPEC::get_entities() -> return_container {
 	return meta::eval_if(
 		[&](auto) {
 			if (ArgSize == 0) return return_container{entities.begin(), entities.end()};
-			auto smallest = get_smallest_idx<Ts...>();
+			auto smallest = this->get_smallest_idx<Ts...>();
 
 			return_container ret;
 			ret.reserve(smallest.size());

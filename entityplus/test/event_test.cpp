@@ -165,4 +165,3 @@ TEST_CASE("tag event", "[event]") {
 	REQUIRE(tagsAdded == 3);
 	REQUIRE(tagsRemoved == 3);
 }
-
