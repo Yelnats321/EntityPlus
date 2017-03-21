@@ -6,7 +6,121 @@
 #include <algorithm>
 #include <initializer_list>
 
+#include "event.h"
+
 namespace entityplus {
+namespace detail {
+#define ENTITY_TEMPS \
+template <typename... CTs, typename... TTs> 
+
+#define ENTITY_SPEC \
+entity<component_list<CTs...>, tag_list<TTs...>>
+
+ENTITY_TEMPS
+template <typename Component>
+bool ENTITY_SPEC::has_component() const {
+	assert(entityManager);
+	using IsCompValid = meta::typelist_has_type<Component, component_t>;
+	return meta::eval_if(
+		[&](auto) { 
+			return meta::get<Component>(compTags); 
+		},
+		meta::fail_cond<IsCompValid>([](auto id) {
+			static_assert(id(false), "has_component called with invalid component");
+			return false;
+		})
+	);
+}
+
+ENTITY_TEMPS
+template <typename Component, typename... Args>
+std::pair<Component&, bool> ENTITY_SPEC::add_component(Args&&... args) {
+	assert(entityManager);
+	using IsCompValid = meta::typelist_has_type<Component, component_t>;
+	using IsConstructible = std::is_constructible<Component, Args&&...>;
+	auto argTuple = std::forward_as_tuple(std::forward<Args>(args)...);
+	return meta::eval_if(
+		[&](auto) { 
+			return entityManager->template add_component<Component>(*this, argTuple); 
+		},
+		meta::fail_cond<IsCompValid>([](auto id) {
+			static_assert(id(false), "add_component called with invalid component");
+			return std::declval<std::pair<Component&, bool>>(); 
+		}),
+		meta::fail_cond<IsConstructible>([](auto id) {
+			static_assert(id(false), "add_component cannot construct component with given args");
+			return std::declval<std::pair<Component&, bool>>();
+		})
+	);
+}
+
+ENTITY_TEMPS
+template <typename Component>
+bool ENTITY_SPEC::remove_component() {
+	assert(entityManager);
+	using IsCompValid = meta::typelist_has_type<Component, component_t>;
+	return meta::eval_if(
+		[&](auto) { 
+			return entityManager->template remove_component<Component>(*this); 
+		},
+		meta::fail_cond<IsCompValid>([](auto id) {
+			static_assert(id(false), "remove_component called with invalid component");
+			return false;
+		})
+	);
+}
+
+ENTITY_TEMPS
+template <typename Component>
+const Component& ENTITY_SPEC::get_component() const {
+	assert(entityManager);
+	using IsCompValid = meta::typelist_has_type<Component, component_t>;
+	return meta::eval_if(
+		[&](auto) -> decltype(auto) {
+			return entityManager->template get_component<Component>(*this); 
+		},
+		meta::fail_cond<IsCompValid>([](auto id) {
+			static_assert(id(false), "get_component called with invalid component");
+			return std::declval<const Component &>();
+		})
+	);
+}
+
+ENTITY_TEMPS
+template <typename Tag>
+bool ENTITY_SPEC::has_tag() const {
+	assert(entityManager);
+	using IsTagValid = meta::typelist_has_type<Tag, tag_t>;
+	return meta::eval_if(
+		[&](auto) { 
+			return meta::get<Tag>(compTags); 
+		},
+		meta::fail_cond<IsTagValid>([](auto id) {
+			static_assert(id(false), "has_tag called with invalid tag");
+			return false;
+		})
+	);
+}
+
+ENTITY_TEMPS
+template <typename Tag>
+bool ENTITY_SPEC::set_tag(bool set) {
+	assert(entityManager);
+	using IsTagValid = meta::typelist_has_type<Tag, tag_t>;
+	return meta::eval_if(
+		[&](auto) { 
+			return entityManager->template set_tag<Tag>(*this, set); 
+		},
+		meta::fail_cond<IsTagValid>([](auto id) {
+			static_assert(id(false), "set_tag called with invalid tag");
+			return false;
+		})
+	);
+}
+
+#undef ENTITY_TEMPS
+#undef ENTITY_SPEC
+} // namespace detail
 
 #define ENTITY_MANAGER_TEMPS \
 template <typename... CTs, typename... TTs> 
@@ -26,6 +140,7 @@ void ENTITY_MANAGER_SPEC::report_error(error_code_t errCode, const char * msg) c
 		throw invalid_component(msg);
 	}
 	// unreachable
+	assert(0);
 	std::terminate();
 #endif
 }
@@ -55,9 +170,12 @@ auto ENTITY_MANAGER_SPEC::assert_entity(const entity_t &entity) const -> const e
 					 "Entity's components/tags are stale. Don't store stale entities.");
 	case entity_status::OK:
 		return *entStatus.first;
+	default:
+		// unreachable
+		assert(0);	
+		std::terminate();
 	}
-	// unreachable
-	std::terminate();
+
 }
 #endif
 
@@ -122,6 +240,8 @@ ENTITY_MANAGER_SPEC::add_component(entity_t &entity, const std::tuple<Args...> &
 
 	add_bit<Component>(myEnt, entity);
 
+	if (eventManager) eventManager->broadcast(component_added<entity_t, Component>{myEnt, comp.first->second});
+
 	return {comp.first->second, true};
 }
 
@@ -139,8 +259,12 @@ bool ENTITY_MANAGER_SPEC::remove_component(entity_t &entity) {
 	}
 
 	auto &container = meta::get<Component, component_list_t>(components);
-	auto ce = container.erase(entity.id);
-	(void)ce; assert(ce == 1);
+	auto comp = container.find(entity.id);
+	assert(comp != container.end());
+
+	if (eventManager) eventManager->broadcast(component_removed<entity_t, Component>{myEnt, comp->second});
+
+	container.erase(comp);
 
 	remove_bit<Component>(myEnt, entity);
 
@@ -177,8 +301,16 @@ bool ENTITY_MANAGER_SPEC::set_tag(entity_t &entity, bool set) {
 
 	bool old = meta::get<Tag>(entity.compTags);
 	if (old != set) {
-		if (set) add_bit<Tag>(myEnt, entity);
-		else remove_bit<Tag>(myEnt, entity);
+		if (set) {
+			add_bit<Tag>(myEnt, entity);
+			if (eventManager)
+				eventManager->broadcast(tag_added<entity_t, Tag>{myEnt});
+		}
+		else {
+			if (eventManager)
+				eventManager->broadcast(tag_removed<entity_t, Tag>{myEnt});
+			remove_bit<Tag>(myEnt, entity);
+		}
 	}
 	return old;
 }
@@ -189,19 +321,30 @@ auto ENTITY_MANAGER_SPEC::create_entity() -> entity_t {
 	auto emp = entities.emplace(typename entity_t::private_access{}, currentId++, this);
 	assert(emp.second);
 
+	if (eventManager) eventManager->broadcast(entity_created<entity_t>{*emp.first});
+
 	return *emp.first;
 }
 
 ENTITY_MANAGER_TEMPS
 void ENTITY_MANAGER_SPEC::delete_entity(const entity_t &entity) {
-#if !NDEBUG
-	assert_entity(entity);
+#if NDEBUG
+	auto &myEnt = *entities.find(entity);
+#else
+	auto &myEnt = assert_entity(entity);
 #endif
 
-	meta::for_each(components, [&](auto &container, std::size_t idx) {
+	if (eventManager) eventManager->broadcast(entity_deleted<entity_t>{myEnt});
+
+	meta::for_each(components, [&](auto &container, std::size_t idx, auto type_holder) {
+		(void)type_holder;
 		if (entity.compTags[idx]) {
-			auto ce = container.erase(entity.id);
-			(void)ce; assert(ce == 1);
+			auto comp = container.find(entity.id);
+			assert(comp != container.end());
+			if (eventManager) 
+				eventManager->broadcast(component_removed<entity_t, 
+										typename decltype(type_holder)::type::mapped_type>{myEnt, comp->second});
+			container.erase(comp);
 
 			auto &ecc = entityCount[idx];
 			auto ece = ecc.erase(entity);
@@ -209,14 +352,17 @@ void ENTITY_MANAGER_SPEC::delete_entity(const entity_t &entity) {
 		}
 	});
 	
-	for (std::size_t i = 0; i < TagCount; ++i) {
-		if (entity.compTags[i + ComponentCount]) {
-			auto &ecc = entityCount[i + ComponentCount];
+	meta::for_each<ComponentCount>(entity.compTags, [&](std::size_t idx, auto type_holder) {
+		(void)type_holder;
+		if (entity.compTags[idx]) {
+			if (eventManager)
+				eventManager->broadcast(tag_removed<entity_t,
+										typename decltype(type_holder)::type>{myEnt});
+			auto &ecc = entityCount[idx];
 			auto ece = ecc.erase(entity);
-			(void)ece;
-			assert(ece == 1);
+			(void)ece; assert(ece == 1);
 		}
-	}
+	});
 	auto ers = entities.erase(entity); 
 	(void)ers; assert(ers == 1);
 }
@@ -251,7 +397,7 @@ template <typename T, typename U>
 auto make_key() {
 	return make_key_impl<T, U>{}();
 }
-}
+} // namespace detail
 
 ENTITY_MANAGER_TEMPS
 template<typename... Ts>
@@ -262,26 +408,29 @@ auto ENTITY_MANAGER_SPEC::get_entities() -> return_container {
 	using IsTypelistValid = meta::and_all<meta::typelist_has_type<Ts, comp_tag_t>...>;
 	return meta::eval_if(
 		[&](auto) {
-		if (ArgSize == 0) return return_container{entities.begin(), entities.end()};
-		auto smallest = this->get_smallest_idx<Ts...>();
+			if (ArgSize == 0) return return_container{entities.begin(), entities.end()};
+			auto smallest = get_smallest_idx<Ts...>();
 
-		return_container ret;
-		ret.reserve(smallest.size());
+			return_container ret;
+			ret.reserve(smallest.size());
 
-		auto key = detail::make_key<Typelist, comp_tag_t>();
+			auto key = detail::make_key<Typelist, comp_tag_t>();
 
-		for (const auto &ent : smallest) {
-			if ((ent.compTags & key) == key)
-				ret.push_back(ent);
-		}
-		return ret; },
-		meta::fail_cond<IsTypelistUnique>([](auto delay) {
-		static_assert(delay, "get_entitites called with a non-unique typelist");
-		return std::declval<return_container>(); }),
-		meta::fail_cond<IsTypelistValid>([](auto delay) {
-		static_assert(delay, "get_entitites called with invalid typelist");
-		return std::declval<return_container>();
-	}));
+			for (const auto &ent : smallest) {
+				if ((ent.compTags & key) == key)
+					ret.push_back(ent);
+			}
+			return ret; 
+		},
+		meta::fail_cond<IsTypelistValid>([](auto id) {
+			static_assert(id(false), "get_entitites called with invalid typelist");
+			return std::declval<return_container>();
+		}),
+		meta::fail_cond<IsTypelistUnique>([](auto id) {
+			static_assert(id(false), "get_entitites called with a non-unique typelist");
+			return std::declval<return_container>();
+		})
+	);
 }
 
 namespace detail{
@@ -292,7 +441,7 @@ template <typename T, typename... Ts> struct func_sig_no_control<T, meta::typeli
 
 template <typename T, typename U> struct func_sig_with_control;
 template <typename T, typename... Ts> struct func_sig_with_control<T, meta::typelist<Ts...>> {
-	using type = void(T, Ts&..., control_block_t);
+	using type = void(T, Ts&..., control_block_t &);
 };
 
 template <typename Iter>
@@ -343,7 +492,7 @@ void deref_and_invoke(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iter
 	deref_and_invoke_impl(std::forward<Func>(func), std::forward<Func2>(func2),
 						  std::forward<T>(t), iters, control, std::index_sequence_for<Ts...>{});
 }
-}
+} // namespace detail
 
 ENTITY_MANAGER_TEMPS
 template<typename... Ts, typename Func>
@@ -361,43 +510,56 @@ void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 	using IsTypelistValid = meta::and_all<meta::typelist_has_type<Ts, comp_tag_t>...>;
 	meta::eval_if(
 		[&](auto) {
-		auto smallest = this->get_smallest_idx<Ts...>();
-		auto smallestIdxSize = smallest.size();
-		if (smallestIdxSize == 0) return;
-		auto iters = detail::make_iters<component_list_t, ComponentsPart>{}(components, smallestIdxSize, maxLinearSearchDistance);
-		auto key = detail::make_key<Typelist, comp_tag_t>();
-		control_block_t control;
-		for (const auto &ent : smallest) {
-			if ((ent.compTags & key) != key) continue;
-			meta::for_each(iters, [&](auto &iter, std::size_t) {
-				if (iter.useLinear) {
-					while (iter.pos->first < ent.id) ++iter.pos;
-				}
-				else {
-					iter.pos = std::lower_bound(iter.pos, iter.end, ent.id,
-												[](const auto &it, const auto &val) {
-						return it.first < val;
-					});
-				}
-			});
-			meta::eval_if(
-				[&](auto) {
-				detail::deref_and_invoke(func,
-										 [](auto &iter) -> auto & { return iter.pos->second; },
-										 ent, iters);},
-				meta::fail_cond<IsFuncNoControl>([&](auto) {
-				detail::deref_and_invoke(func,
-										 [](auto &iter) -> auto & { return iter.pos->second; },
-										 ent, iters, control);
-				}));
-			if (control.breakout) break;
-		}},
-		meta::fail_cond<IsTypelistUnique>([](auto delay) {
-		static_assert(delay, "for_each called with a non-unique typelist");}),
-		meta::fail_cond<IsTypelistValid>([](auto delay) {
-		static_assert(delay, "for_each called with invalid typelist");}),
-		meta::fail_cond<IsFunc>([](auto delay) {
-		static_assert(delay, "for_each called with invalid callable");}));
+			auto smallest = this->get_smallest_idx<Ts...>();
+			auto smallestIdxSize = smallest.size();
+			if (smallestIdxSize == 0) return;
+			auto iters = detail::make_iters<component_list_t, ComponentsPart>{}(components, smallestIdxSize, maxLinearSearchDistance);
+			auto key = detail::make_key<Typelist, comp_tag_t>();
+			control_block_t control;
+			for (const auto &ent : smallest) {
+				if ((ent.compTags & key) != key) continue;
+				meta::for_each(iters, [&](auto &iter, std::size_t, auto) {
+					if (iter.useLinear) {
+						while (iter.pos->first < ent.id) ++iter.pos;
+					}
+					else {
+						iter.pos = std::lower_bound(iter.pos, iter.end, ent.id,
+													[](const auto &it, const auto &val) {
+							return it.first < val;
+						});
+					}
+				});
+				meta::eval_if(
+					[&](auto) {
+						detail::deref_and_invoke(func,
+												 [](auto &iter) -> auto & { return iter.pos->second; },
+												 ent, iters);
+					},
+					meta::fail_cond<IsFuncNoControl>([&](auto) {
+						detail::deref_and_invoke(func,
+												 [](auto &iter) -> auto & { return iter.pos->second; },
+												 ent, iters, control);
+					})
+				);
+				if (control.breakout) break;
+			}
+		},
+		meta::fail_cond<IsTypelistValid>([](auto id) {
+			static_assert(id(false), "for_each called with invalid typelist");
+		}),
+		meta::fail_cond<IsTypelistUnique>([](auto id) {
+			static_assert(id(false), "for_each called with a non-unique typelist"); 
+		}),
+		meta::fail_cond<IsFunc>([](auto id) {
+			static_assert(id(false), "for_each called with invalid callable");
+		})
+	);
+}
+
+ENTITY_MANAGER_TEMPS
+template <typename... Events>
+void ENTITY_MANAGER_SPEC::set_event_manager(event_manager<component_list_t, tag_list_t, Events...> &em) {
+	eventManager = &em.get_entity_event_manager();
 }
 
 #undef ENTITY_MANAGER_TEMPS

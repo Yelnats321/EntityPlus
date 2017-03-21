@@ -34,7 +34,13 @@ enum class entity_status {
 	OK
 };
 
+template <typename...>
+class event_manager;
+
 namespace detail {
+template <typename Components, typename Tags>
+class entity_event_manager;
+
 template <typename Components, typename Tags>
 class entity {
 	static_assert(meta::delay_v<Components, Tags>,
@@ -72,90 +78,32 @@ public:
 	}
 
 	template <typename Component>
-	inline bool has_component() const {
-		assert(entityManager);
-		using IsCompValid = meta::typelist_has_type<Component, component_t>;
-		return meta::eval_if(
-			[&](auto) { return meta::get<Component>(compTags); },
-			meta::fail_cond<IsCompValid>([](auto delay) {
-			static_assert(delay, "has_component called with invalid component");
-			return false;
-		}));
-	}
+	bool has_component() const;
 
 	// Adds the component if it doesn't exist, otherwise returns the existing component
 	template <typename Component, typename... Args>
-	inline std::pair<Component&, bool> add_component(Args&&... args) {
-		assert(entityManager);
-		using IsCompValid = meta::typelist_has_type<Component, component_t>;
-		using IsConstructible = std::is_constructible<Component, Args&&...>;
-		auto argTuple = std::forward_as_tuple(std::forward<Args>(args)...);
-		return meta::eval_if(
-			[&](auto) { return entityManager->template add_component<Component>(*this, argTuple); },
-			meta::fail_cond<IsCompValid>([](auto delay) {
-			static_assert(delay, "add_component called with invalid component");
-			return std::declval<std::pair<Component&, bool>>();}),
-			meta::fail_cond<IsConstructible>([](auto delay) {
-			static_assert(delay, "add_component cannot construct component with given args");
-			return std::declval<std::pair<Component&, bool>>();
-		}));
-	}
+	std::pair<Component&, bool> add_component(Args&&... args);
 
 	// Returns if the component was removed or not (in the case that it didn't exist)
 	template <typename Component>
-	inline bool remove_component() {
-		assert(entityManager);
-		using IsCompValid = meta::typelist_has_type<Component, component_t>;
-		return meta::eval_if(
-			[&](auto) { return entityManager->template remove_component<Component>(*this); },
-			meta::fail_cond<IsCompValid>([](auto delay) {
-			static_assert(delay, "remove_component called with invalid component");
-			return false;
-		}));
-	}
+	bool remove_component();
 
 	// Must have component in order to get it, otherwise you have a invalid_component exception
 	template <typename Component>
-	inline const Component& get_component() const {
-		assert(entityManager);
-		using IsCompValid = meta::typelist_has_type<Component, component_t>;
-		return meta::eval_if(
-			[&](auto) -> decltype(auto) { return entityManager->template get_component<Component>(*this); },
-			meta::fail_cond<IsCompValid>([](auto delay) {
-			static_assert(delay, "get_component called with invalid component");
-			return std::declval<const Component &>();
-		}));
-	}
+	const Component& get_component() const;
+	// Must have component in order to get it, otherwise you have a invalid_component exception
 	template <typename Component>
-	inline Component& get_component() {
+	Component& get_component() {
 		return const_cast<Component&>
 			(meta::as_const(*this).template get_component<Component>());
 	}
 
 	template <typename Tag>
-	inline bool has_tag() const {
-		assert(entityManager);
-		using IsTagValid = meta::typelist_has_type<Tag, tag_t>;
-		return meta::eval_if(
-			[&](auto) { return meta::get<Tag>(compTags); },
-			meta::fail_cond<IsTagValid>([](auto delay) {
-			static_assert(delay, "has_tag called with invalid tag");
-			return false;
-		}));
-	}
+	bool has_tag() const;
 
-	// returns the previous tag value
+	// Returns the previous tag value
 	template <typename Tag>
-	inline bool set_tag(bool set) {
-		assert(entityManager);
-		using IsTagValid = meta::typelist_has_type<Tag, tag_t>;
-		return meta::eval_if(
-			[&](auto) { return entityManager->template set_tag<Tag>(*this, set); },
-			meta::fail_cond<IsTagValid>([](auto delay) {
-			static_assert(delay, "set_tag called with invalid tag");
-			return false;
-		}));
-	}
+	bool set_tag(bool set);
 
 	inline bool operator<(const entity &other) const {
 		assert(entityManager && entityManager == other.entityManager);
@@ -179,6 +127,7 @@ private:
 	using tag_t = meta::typelist<Tags...>;
 	using comp_tag_t = meta::typelist<Components..., Tags...>;
 	using entity_container = flat_set<entity_t>;
+	using entity_event_manager_t = detail::entity_event_manager<component_list_t, tag_list_t>;
 
 	friend entity_t;
 
@@ -194,6 +143,7 @@ private:
 	entity_container entities;
 	std::array<entity_container, CompTagCount> entityCount;
 	std::size_t maxLinearSearchDistance = 64;
+	entity_event_manager_t *eventManager = nullptr;
 
 	[[noreturn]] void report_error(error_code_t errCode, const char * error) const;
 
@@ -251,10 +201,18 @@ public:
 		return maxLinearSearchDistance = maxLinearDist;
 	}
 
+	template <typename... Events>
+	void set_event_manager(event_manager<component_list_t, tag_list_t, Events...> &em);
+
+	void clear_event_manager() {
+		eventManager = nullptr;
+	}
+
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
 	using error_callback_t = void(error_code_t, const char *);
 private:
 	std::function<error_callback_t> errorCallback;
+
 	[[noreturn]] void handle_error(error_code_t err, const char *msg) const {
 		if (errorCallback) errorCallback(err, msg);
 		std::terminate();

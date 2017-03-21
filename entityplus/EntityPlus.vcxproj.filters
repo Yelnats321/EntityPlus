@@ -39,6 +39,9 @@
     <None Include="entity.impl">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="event.impl">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="test\metafunctions_test.cpp">

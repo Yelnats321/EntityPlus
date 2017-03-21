@@ -58,6 +58,23 @@ T from_tuple(const std::tuple<Args...> &args) {
 }
 
 /* -----------------------
+** tuple_from_typelist
+** -----------------------
+*/
+
+template <typename Typelist, template <class> class Container>
+struct tuple_from_typelist;
+
+template <typename... Ts, template <class> class Container>
+struct tuple_from_typelist<typelist<Ts...>, Container> {
+	using type = std::tuple<Container<Ts>...>;
+};
+
+
+template <typename Typelist, template <class> class Container>
+using tuple_from_typelist_t = typename tuple_from_typelist<Typelist, Container>::type;
+
+/* -----------------------
 ** and_all or_all
 ** -----------------------
 */
@@ -136,6 +153,28 @@ template <typename T, typename U>
 constexpr std::size_t typelist_index_v = typelist_index<T, U>::value;
 
 /* -----------------------
+** typelist_type
+** Prereq: Typelist must contain T
+** -----------------------
+*/
+
+template <std::size_t Idx, typename Typelist>
+struct typelist_type;
+
+template <typename T, typename... Ts>
+struct typelist_type<0, typelist<T, Ts...>> {
+	using type = T;
+};
+
+template <std::size_t Idx, typename T, typename... Ts>
+struct typelist_type<Idx, typelist<T, Ts...>> {
+	using type = typename typelist_type<Idx - 1, typelist<T, Ts...>>::type;
+};
+
+template <std::size_t I, typename T>
+using typelist_type_t = typename typelist_type<I, T>::type;
+
+/* -----------------------
 ** typelist_concat
 ** -----------------------
 */
@@ -180,14 +219,19 @@ using typelist_intersection_t = typename typelist_intersection<T, U>::type;
 */
 
 namespace detail {
-template <typename Func, typename... Ts, std::size_t... Is>
+template <typename T>
+struct type_holder {
+	using type = T;
+};
+
+template <typename... Ts, typename Func, std::size_t... Is>
 inline void for_each_impl(std::tuple<Ts...> &tup, Func &&func, std::index_sequence<Is...>) {
 	(void)tup; (void)func;
-	std::initializer_list<int> _ = {((void)func(std::get<Is>(tup), Is), 0)...};
+	std::initializer_list<int> _ = {((void)func(std::get<Is>(tup), Is, type_holder<Ts>{}), 0)...};
 }
 }
 
-template <typename Func, typename... Ts>
+template <typename... Ts, typename Func>
 inline void for_each(std::tuple<Ts...> &tup, Func&& func) {
 	detail::for_each_impl(tup, std::forward<Func>(func), std::index_sequence_for<Ts...>{});
 }
@@ -221,6 +265,15 @@ template <typename T, typename... Ts>
 decltype(auto) get_success(tag<0>, T&&, Ts&&... ts) {
 	return get_success(tag<1>{}, std::forward<Ts>(ts)...);
 }
+
+template <typename Pred>
+struct identity {
+	using pred_type = Pred;
+	template <typename T>
+	constexpr decltype(auto) operator()(T&&t) const noexcept {
+		return std::forward<T>(t);
+	}
+};
 }
 
 template <typename Pred, typename Func>
@@ -234,8 +287,8 @@ decltype(auto) eval_if(Func&& success, detail::fail_cond_t<Preds, Funcs>&&... fc
 		detail::tag<1>{},
 		std::move(fcs)...,
 		fail_cond<std::false_type>(std::forward<Func>(success)));
-	//using pred_type = typename std::decay_t<decltype(rt)>::pred_type;
-	return rt.func(std::false_type{});
+	using pred_type = typename std::decay_t<decltype(rt)>::pred_type;
+	return rt.func(detail::identity<pred_type>{});
 }
 
 /* -----------------------
@@ -290,6 +343,21 @@ decltype(auto) get(const type_bitset<typelist<Ts...>> & ts) {
 template <typename T, typename... Ts>
 decltype(auto) get(type_bitset<typelist<Ts...>> & ts) {
 	return ts[typelist_index_v<T, typelist<Ts...>>];
+}
+
+namespace detail {
+template <std::size_t Offset, typename... Ts, typename Func, std::size_t... Is>
+inline void for_each_impl(const type_bitset<typelist<Ts...>> &, Func&& func, std::index_sequence<Is...>) {
+	(void)func;
+	std::initializer_list<int> _ =
+	{((void)func(Is + Offset,
+				 type_holder<typelist_type_t<Is + Offset, typelist<Ts...>>>{}), 0)...};
+}
+}
+
+template <std::size_t Offset, typename... Ts, typename Func>
+inline void for_each(const type_bitset<typelist<Ts...>> &tb, Func&& func) {
+	detail::for_each_impl<Offset>(tb, std::forward<Func>(func), std::make_index_sequence<sizeof...(Ts)-Offset>{});
 }
 
 template <typename T>

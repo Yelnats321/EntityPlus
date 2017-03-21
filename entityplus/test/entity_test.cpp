@@ -5,32 +5,12 @@
 
 #include "test_common.h"
 
-struct A {
-	int x;
-	A(int x): x(x) {}
-};
-
-struct B {
-	std::string name;
-	B(std::string name):name(name) {}
-};
-
-class C {
-	int x, y;
-public:
-	C(int x, int y): x(x), y(y) {};
-	int get() {
-		return std::max(x, y);
-	}
-};
-
 TEST_CASE("entity", "[entity]") {
-	entity_manager<component_list<>, tag_list<>> em;
-	using entity_t = entity_manager<component_list<>, tag_list<>>::entity_t;
+	default_manager em;
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
 	em.set_error_callback(error_handler);
 #endif
-	entity_t ent;
+	default_entity ent;
 	REQUIRE(ent.get_status() == entity_status::UNINITIALIZED);
 	REQUIRE(em.get_entities<>().size() == 0);
 	em.for_each<>([](auto) {
@@ -49,7 +29,7 @@ TEST_CASE("entity", "[entity]") {
 	REQUIRE(ent.get_status() == entity_status::DELETED);
 	REQUIRE(em.get_entities<>().size() == 0);
 
-	entity_manager<component_list<>, tag_list<>> em2;
+	default_manager em2;
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
 	em2.set_error_callback(error_handler);
 #endif
@@ -58,7 +38,6 @@ TEST_CASE("entity", "[entity]") {
 }
 
 TEST_CASE("components", "[entity]") {
-	using comps = component_list<A, B, C>;
 	entity_manager<comps, tag_list<>> em;
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
 	em.set_error_callback(error_handler);
@@ -112,7 +91,6 @@ TEST_CASE("components", "[entity]") {
 }
 
 TEST_CASE("tags", "[entity]") {
-	using tags = tag_list<struct TA, struct TB, struct TC>;
 	entity_manager<component_list<>, tags> em;
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
 	em.set_error_callback(error_handler);
@@ -141,8 +119,6 @@ TEST_CASE("tags", "[entity]") {
 }
 
 TEST_CASE("stale entity", "[entity]") {
-	using comps = component_list<A, B, C>;
-	using tags = tag_list<struct TA, struct TB, struct TC>;
 	entity_manager<comps, tags> em;
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
 	em.set_error_callback(error_handler);
@@ -165,8 +141,6 @@ TEST_CASE("stale entity", "[entity]") {
 }
 
 TEST_CASE("get_entities", "[entity]") {
-	using comps = component_list<A, B, C>;
-	using tags = tag_list<struct TA, struct TB, struct TC>;
 	SECTION("by type") {
 		entity_manager<comps, tags> em;
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
@@ -216,9 +190,6 @@ TEST_CASE("get_entities", "[entity]") {
 
 
 TEST_CASE("for_each entity", "[entity]") {
-	using comps = component_list<A, B, C>;
-	using tags = tag_list<struct TA, struct TB, struct TC>;
-
 	entity_manager<comps, tags> em;
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
 	em.set_error_callback(error_handler);
@@ -256,9 +227,6 @@ TEST_CASE("for_each entity", "[entity]") {
 }
 
 TEST_CASE("for_each with control", "[entity]") {
-	using comps = component_list<A, B, C>;
-	using tags = tag_list<struct TA, struct TB, struct TC>;
-
 	entity_manager<comps, tags> em;
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
 	em.set_error_callback(error_handler);
@@ -278,4 +246,24 @@ TEST_CASE("for_each with control", "[entity]") {
 		++count;
 	});
 	REQUIRE(count == 3);
+}
+
+
+
+TEST_CASE("entity metafunction", "[entity]") {
+	//entity_manager<int, float> em;
+	entity_manager<component_list<int>, tag_list<struct tag>> em;
+	auto ent = em.create_entity();
+	//ent.add_component<float>(4);
+	//ent.add_component<int>("wasoo");
+	//ent.get_component<float>();
+	//ent.has_component<float>();
+	//ent.remove_component<float>();
+	//ent.has_tag<int>();
+	//ent.set_tag<int>(true);
+	//em.get_entities<int, int>();
+	//em.get_entities<float, float>();
+	//em.for_each<float>([]() {});
+	//em.for_each<int, int>([](auto, auto, auto) {});
+	//em.for_each<>([](auto, auto, auto) {});
 }

@@ -3,8 +3,8 @@
 //    (See accompanying file ../../LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#include "test_common.h"
-
+#include <catch.hpp>
+#include "../metafunctions.h"
 #include "../typelist.h"
 
 using namespace entityplus::meta;
@@ -76,7 +76,7 @@ TEST_CASE("for_each", "[metafunctions]") {
 	const std::tuple<int, float, double> tupOriginal{2, 3.4f, 5.6};
 	SECTION("triple with ref") {
 		auto tup = tupOriginal;
-		for_each(tup, [](auto &x, std::size_t i) {
+		for_each(tup, [](auto &x, std::size_t i, auto) {
 			x = x*3 + (int)i;
 		});
 		REQUIRE(std::get<int>(tupOriginal) * 3 == std::get<int>(tup));
@@ -85,7 +85,7 @@ TEST_CASE("for_each", "[metafunctions]") {
 	}
 	SECTION("triple without ref") {
 		auto tup = tupOriginal;
-		for_each(tup, [](auto x, std::size_t) {
+		for_each(tup, [](auto x, std::size_t, auto) {
 			x *= 3;
 		});
 		REQUIRE(tup == tupOriginal);
