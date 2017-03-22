@@ -248,7 +248,7 @@ struct tag: tag<N - 1> {};
 template <>
 struct tag <0> {};
 
-template<typename Pred, typename Func>
+template <typename Pred, typename Func>
 struct fail_cond_t {
 	using pred_type = Pred;
 	Func func;
@@ -324,6 +324,10 @@ public:
 
 	constexpr type_bitset operator&(const type_bitset &other) const {
 		return{static_cast<const underlying_type &>(*this) & static_cast<const underlying_type &>(other)};
+	}
+
+	constexpr type_bitset operator|(const type_bitset &other) const {
+		return{static_cast<const underlying_type &>(*this) | static_cast<const underlying_type &>(other)};
 	}
 
 	constexpr bool operator==(const type_bitset &other) const {

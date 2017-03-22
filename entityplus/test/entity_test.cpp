@@ -28,11 +28,6 @@ TEST_CASE("entity", "[entity]") {
 	ent.destroy();
 	REQUIRE(ent.get_status() == entity_status::DELETED);
 	REQUIRE(em.get_entities<>().size() == 0);
-
-	default_manager em2;
-#ifdef ENTITYPLUS_NO_EXCEPTIONS
-	em2.set_error_callback(error_handler);
-#endif
 }
 
 TEST_CASE("components", "[entity]") {
@@ -293,4 +288,30 @@ TEST_CASE("entity sync", "[entity]") {
 	REQUIRE(copyEnt.get_status() == entity_status::DELETED);
 	REQUIRE(!ent.sync());
 	REQUIRE(!copyEnt.sync());
+}
+
+TEST_CASE("entity grouping", "[entity]") {
+	entity_manager<comps, tags> em;
+	entity_grouping grouping, stolenGrouping;
+	REQUIRE(!grouping.is_valid());
+	REQUIRE(!stolenGrouping.is_valid());
+	grouping = em.create_grouping<A, TA>();
+	REQUIRE(grouping.is_valid());
+	REQUIRE(!stolenGrouping.is_valid());
+	stolenGrouping = std::move(grouping);
+	REQUIRE(!grouping.is_valid());
+	REQUIRE(stolenGrouping.is_valid());
+	REQUIRE(!grouping.destroy());
+	REQUIRE(stolenGrouping.destroy());
+
+	auto ent1 = em.create_entity();
+	ent1.add_component<A>(0);
+	ent1.set_tag<TA>(true);
+	grouping = em.create_grouping<A, TA>();
+	ent1.set_tag<TB>(true);
+
+	auto ent2 = em.create_entity();
+	ent2.add_component<A>(0);
+
+	ent2.set_tag<TA>(true);
 }

@@ -182,20 +182,27 @@ auto ENTITY_MANAGER_SPEC::assert_entity(const entity_t &entity) const -> const e
 ENTITY_MANAGER_TEMPS
 template <typename T>
 void ENTITY_MANAGER_SPEC::add_bit(entity_t &local, entity_t &foreign) {
-	for (std::size_t i = 0; i < CompTagCount; ++i) {
-		if (local.compTags[i]) {
-			auto ent = entityCount[i].find(local);
-			assert(ent != entityCount[i].end());
-			meta::get<T>(ent->compTags) = true;
-		}
-	}
+	auto prevBits = local.compTags;
 
 	meta::get<T>(local.compTags) =
 		meta::get<T>(foreign.compTags) = true;
 
-	auto &ecc = entityCount[meta::typelist_index_v<T, comp_tag_t>];
-	auto emp = ecc.emplace(local);
-	assert(emp.second);
+	meta::type_bitset<comp_tag_t> singleBit;
+	meta::get<T>(singleBit) = true;
+	for (auto &groupingEntry : groupings) {
+		const auto &groupingBitset = groupingEntry.second.first;
+		auto &groupingContainer = groupingEntry.second.second;
+		bool wasInGrouping = (groupingBitset & prevBits) == groupingBitset,
+			enteredGrouping = (groupingBitset & (prevBits | singleBit)) == groupingBitset;
+		if (!wasInGrouping && enteredGrouping) {
+			groupingContainer.emplace(local);
+		}
+		else if (wasInGrouping) {
+			auto ent = groupingContainer.find(local);
+			assert(ent != groupingContainer.end());
+			meta::get<T>(ent->compTags) = true;
+		}
+	}
 }
 
 ENTITY_MANAGER_TEMPS
@@ -204,17 +211,23 @@ void ENTITY_MANAGER_SPEC::remove_bit(entity_t &local, entity_t &foreign) {
 	meta::get<T>(local.compTags) =
 		meta::get<T>(foreign.compTags) = false;
 
-	for (std::size_t i = 0; i < CompTagCount; ++i) {
-		if (local.compTags[i]) {
-			auto ent = entityCount[i].find(local);
-			assert(ent != entityCount[i].end());
+	meta::type_bitset<comp_tag_t> singleBit;
+	meta::get<T>(singleBit) = true;
+	for (auto &groupingEntry : groupings) {
+		const auto &groupingBitset = groupingEntry.second.first;
+		auto &groupingContainer = groupingEntry.second.second;
+		bool inGrouping = (groupingBitset & local.compTags) == groupingBitset,
+			wasInGrouping = (groupingBitset & (local.compTags | singleBit)) == groupingBitset;
+		if (!inGrouping && wasInGrouping) {
+			auto er = groupingContainer.erase(local);
+			(void)er; assert(er == 1);
+		}
+		else if (inGrouping) {
+			auto ent = groupingContainer.find(local);
+			assert(ent != groupingContainer.end());
 			meta::get<T>(ent->compTags) = false;
 		}
 	}
-
-	auto &ecc = entityCount[meta::typelist_index_v<T, comp_tag_t>];
-	auto ece = ecc.erase(local);
-	(void)ece; assert(ece == 1);
 }
 
 ENTITY_MANAGER_TEMPS
@@ -317,8 +330,8 @@ bool ENTITY_MANAGER_SPEC::set_tag(entity_t &entity, bool set) {
 
 ENTITY_MANAGER_TEMPS
 auto ENTITY_MANAGER_SPEC::create_entity() -> entity_t {
-	assert(std::numeric_limits<detail::entity_id_t>::max() != currentId);
-	auto emp = entities.emplace(typename entity_t::private_access{}, currentId++, this);
+	assert(std::numeric_limits<detail::entity_id_t>::max() != currentEntityId);
+	auto emp = entities.emplace(typename entity_t::private_access{}, currentEntityId++, this);
 	assert(emp.second);
 
 	if (eventManager) eventManager->broadcast(entity_created<entity_t>{*emp.first});
@@ -328,13 +341,11 @@ auto ENTITY_MANAGER_SPEC::create_entity() -> entity_t {
 
 ENTITY_MANAGER_TEMPS
 void ENTITY_MANAGER_SPEC::destroy_entity(const entity_t &entity) {
-#if NDEBUG
-	auto &myEnt = *entities.find(entity);
-#else
-	auto &myEnt = assert_entity(entity);
+#if !NDEBUG
+	assert_entity(entity);
 #endif
 
-	if (eventManager) eventManager->broadcast(entity_deleted<entity_t>{myEnt});
+	if (eventManager) eventManager->broadcast(entity_deleted<entity_t>{entity});
 
 	meta::for_each(components, [&](auto &container, std::size_t idx, auto type_holder) {
 		(void)type_holder;
@@ -343,12 +354,8 @@ void ENTITY_MANAGER_SPEC::destroy_entity(const entity_t &entity) {
 			assert(comp != container.end());
 			if (eventManager) 
 				eventManager->broadcast(component_removed<entity_t, 
-										typename decltype(type_holder)::type::mapped_type>{myEnt, comp->second});
+										typename decltype(type_holder)::type::mapped_type>{entity, comp->second});
 			container.erase(comp);
-
-			auto &ecc = entityCount[idx];
-			auto ece = ecc.erase(entity);
-			(void)ece; assert(ece == 1);
 		}
 	});
 	
@@ -357,14 +364,21 @@ void ENTITY_MANAGER_SPEC::destroy_entity(const entity_t &entity) {
 		if (entity.compTags[idx]) {
 			if (eventManager)
 				eventManager->broadcast(tag_removed<entity_t,
-										typename decltype(type_holder)::type>{myEnt});
-			auto &ecc = entityCount[idx];
-			auto ece = ecc.erase(entity);
-			(void)ece; assert(ece == 1);
+										typename decltype(type_holder)::type>{entity});
 		}
 	});
-	auto ers = entities.erase(entity); 
-	(void)ers; assert(ers == 1);
+
+	for (auto &groupingEntry : groupings) {
+		const auto &groupingBitset = groupingEntry.second.first;
+		auto &groupingContainer = groupingEntry.second.second;
+		if ((groupingBitset & entity.compTags) == groupingBitset) {
+			auto er = groupingContainer.erase(entity);
+			(void)er; assert(er == 1);
+		}
+	}
+
+	auto er = entities.erase(entity); 
+	(void)er; assert(er == 1);
 }
 
 ENTITY_MANAGER_TEMPS
@@ -373,17 +387,6 @@ bool ENTITY_MANAGER_SPEC::sync(entity_t &entity) const {
 	if (entStatus.second == entity_status::DELETED) return false;
 	entity = *entStatus.first;
 	return true;
-}
-
-ENTITY_MANAGER_TEMPS
-template <typename... Ts>
-auto ENTITY_MANAGER_SPEC::get_smallest_idx() ->entity_container& {
-	if (sizeof...(Ts) == 0) return entities;
-
-	std::array<std::size_t, sizeof...(Ts)> sortedThings = {meta::typelist_index_v<Ts, comp_tag_t>...};
-	return entityCount[*std::min_element(sortedThings.begin(), sortedThings.end(), [&](const auto & lhs, const auto &rhs) {
-		return entityCount[lhs].size() < entityCount[rhs].size();
-	})];
 }
 
 namespace detail {
@@ -406,7 +409,24 @@ auto make_key() {
 } // namespace detail
 
 ENTITY_MANAGER_TEMPS
-template<typename... Ts>
+template <typename... Ts>
+auto ENTITY_MANAGER_SPEC::get_smallest_idx() -> std::pair<entity_container&, bool> {
+	if (sizeof...(Ts) == 0) return{entities, true};
+
+	auto key = detail::make_key<meta::typelist<Ts...>, comp_tag_t>();
+	auto & contPair = std::min_element(groupings.begin(), groupings.end(),
+							[&key](const auto &lhs, const auto & rhs) {
+		if ((lhs.second.first & key) == key && (rhs.second.first & key) == key)
+			return lhs.second.second.size() < rhs.second.second.size();
+		if ((lhs.second.first & key) == key && (rhs.second.first & key) != key)
+			return true;
+		return false;
+	})->second;
+	return{contPair.second, (contPair.first&key) == key};
+}
+
+ENTITY_MANAGER_TEMPS
+template <typename... Ts>
 auto ENTITY_MANAGER_SPEC::get_entities() -> return_container {
 	constexpr auto ArgSize = sizeof...(Ts);
 	using Typelist = meta::typelist<Ts...>;
@@ -414,15 +434,17 @@ auto ENTITY_MANAGER_SPEC::get_entities() -> return_container {
 	using IsTypelistValid = meta::and_all<meta::typelist_has_type<Ts, comp_tag_t>...>;
 	return meta::eval_if(
 		[&](auto) {
-			if (ArgSize == 0) return return_container{entities.begin(), entities.end()};
 			auto smallest = this->get_smallest_idx<Ts...>();
-
+			auto &smallestContainer = smallest.first;
+			if (smallest.second) {
+				return return_container{smallestContainer.begin(), smallestContainer.end()};
+			}
 			return_container ret;
-			ret.reserve(smallest.size());
+			ret.reserve(smallestContainer.size());
 
 			auto key = detail::make_key<Typelist, comp_tag_t>();
 
-			for (const auto &ent : smallest) {
+			for (const auto &ent : smallestContainer) {
 				if ((ent.compTags & key) == key)
 					ret.push_back(ent);
 			}
@@ -498,7 +520,7 @@ void deref_and_invoke(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iter
 } // namespace detail
 
 ENTITY_MANAGER_TEMPS
-template<typename... Ts, typename Func>
+template <typename... Ts, typename Func>
 void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 	using Typelist = meta::typelist<Ts...>;
 	using ComponentsPart = meta::typelist_intersection_t<Typelist, component_t>;
@@ -513,7 +535,7 @@ void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 	using IsTypelistValid = meta::and_all<meta::typelist_has_type<Ts, comp_tag_t>...>;
 	meta::eval_if(
 		[&](auto) {
-			auto smallest = this->get_smallest_idx<Ts...>();
+			auto &smallest = this->get_smallest_idx<Ts...>().first;
 			auto smallestIdxSize = smallest.size();
 			if (smallestIdxSize == 0) return;
 			auto iters = detail::make_iters<component_list_t, ComponentsPart>{}(components, smallestIdxSize, maxLinearSearchDistance);
@@ -551,9 +573,66 @@ void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 }
 
 ENTITY_MANAGER_TEMPS
+template <typename... Ts>
+entity_grouping ENTITY_MANAGER_SPEC::create_grouping() {
+	using Typelist = meta::typelist<Ts...>;
+	using IsTypelistUnique = meta::is_typelist_unique<Typelist>;
+	using IsTypelistValid = meta::and_all<meta::typelist_has_type<Ts, comp_tag_t>...>;
+	using IsGoodGrouping = std::integral_constant<bool, (sizeof...(Ts) > 1)>;
+	return meta::eval_if(
+		[&](auto) {
+			assert(std::numeric_limits<detail::entity_grouping_id_t>::max() != currentGroupingId);
+			auto emp = groupings.emplace(currentGroupingId++, 
+										 std::make_pair(detail::make_key<Typelist, comp_tag_t>(),
+														entity_container::from_sorted_underlying(this->get_entities<Ts...>())));
+			assert(emp.second);
+
+			return entity_grouping{*this, emp.first->first};
+		},
+		meta::fail_cond<IsTypelistValid>([](auto id) {
+			static_assert(id(false), "create_grouping called with invalid typelist");
+			return std::declval<entity_grouping>();
+		}),
+		meta::fail_cond<IsTypelistUnique>([](auto id) {
+			static_assert(id(false), "create_grouping called with a non-unique typelist");
+			return std::declval<entity_grouping>();
+		}),
+		meta::fail_cond<IsGoodGrouping>([](auto id) {
+			static_assert(id(false), "create_grouping called with 0 or 1 components/tags");
+			return std::declval<entity_grouping>();
+		})
+	);
+}
+
+ENTITY_MANAGER_TEMPS
 template <typename... Events>
 void ENTITY_MANAGER_SPEC::set_event_manager(const event_manager<component_list_t, tag_list_t, Events...> &em) {
 	eventManager = &em.get_entity_event_manager();
+}
+
+namespace detail {
+template <typename... Ts, typename Container, std::size_t... Is>
+void initialize_groupings_impl(flat_map<entity_grouping_id_t,
+	std::pair<meta::type_bitset<meta::typelist<Ts...>>, Container>> &groupings,
+							   std::index_sequence<Is...>) {
+	(void)groupings;
+	std::initializer_list<int> _ = 
+	{((void)groupings.emplace(Is,
+							  std::make_pair(make_key<meta::typelist<Ts>, meta::typelist<Ts...>>(),
+											 Container{})),
+	  0)...};
+}
+
+template <typename... Ts, typename Container>
+void initialize_groupings(flat_map<entity_grouping_id_t,
+							  std::pair<meta::type_bitset<meta::typelist<Ts...>>, Container>> &groupings) {
+	initialize_groupings_impl(groupings, std::index_sequence_for<Ts...>{});
+}
+} // namespace detail
+
+ENTITY_MANAGER_TEMPS
+ENTITY_MANAGER_SPEC::entity_manager() {
+	detail::initialize_groupings(groupings);
 }
 
 #undef ENTITY_MANAGER_TEMPS

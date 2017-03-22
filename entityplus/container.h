@@ -83,6 +83,12 @@ public:
 		erase(itr);
 		return 1;
 	}
+	
+	static flat_set from_sorted_underlying(container_type &&other) {
+		flat_set set;
+		static_cast<container_type &>(set) = other;
+		return set;
+	}
 };
 
 template <typename Key, typename T, typename Compare = std::less<Key>,

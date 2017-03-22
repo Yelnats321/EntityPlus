@@ -125,7 +125,11 @@ public:
 		return id == other.id;
 	}
 };
-}
+
+using entity_grouping_id_t = std::uintmax_t;
+} // namespace detail
+
+class entity_grouping;
 
 template <typename... Components, typename... Tags>
 class entity_manager<component_list<Components...>, tag_list<Tags...>> {
@@ -141,6 +145,7 @@ private:
 	using entity_event_manager_t = detail::entity_event_manager<component_list_t, tag_list_t>;
 
 	friend entity_t;
+	friend entity_grouping;
 
 	static_assert(meta::is_typelist_unique_v<comp_tag_t>,
 				  "component_list and tag_list must not intersect");
@@ -149,12 +154,14 @@ private:
 	constexpr static auto TagCount = sizeof...(Tags);
 	constexpr static auto CompTagCount = ComponentCount + TagCount;
 
-	detail::entity_id_t currentId = 0;
+	detail::entity_id_t currentEntityId = 0;
 	typename component_list_t::type components;
 	entity_container entities;
-	std::array<entity_container, CompTagCount> entityCount;
 	std::size_t maxLinearSearchDistance = 64;
 	const entity_event_manager_t *eventManager = nullptr;
+	detail::entity_grouping_id_t currentGroupingId = CompTagCount;
+	flat_map<detail::entity_grouping_id_t, 
+		std::pair<meta::type_bitset<comp_tag_t>, entity_container>> groupings;
 
 	[[noreturn]] void report_error(error_code_t errCode, const char * error) const;
 
@@ -189,23 +196,31 @@ private:
 
 	void destroy_entity(const entity_t &entity);
 
+	void destroy_grouping(detail::entity_grouping_id_t id) {
+		auto er = groupings.erase(id);
+		(void)er; assert(er == 1);
+	}
+
 	template <typename... Ts>
-	entity_container& get_smallest_idx();
+	std::pair<entity_container&, bool> get_smallest_idx();
 public:
 	using return_container = std::vector<entity_t>;
 
-	entity_manager() = default;
+	entity_manager();
 	entity_manager(const entity_manager &) = delete;
 	entity_manager& operator=(const entity_manager &) = delete;
 
 	entity_t create_entity();
 
 	// Gets all entities that have the components and tags provided
-	template<typename... Ts>
+	template <typename... Ts>
 	return_container get_entities();
 
-	template<typename... Ts, typename Func>
+	template <typename... Ts, typename Func>
 	void for_each(Func && func);
+
+	template <typename... Ts>
+	entity_grouping create_grouping();
 
 	std::size_t get_max_linear_dist() const {
 		return maxLinearSearchDistance;
@@ -240,6 +255,50 @@ public:
 
 struct control_block_t {
 	bool breakout = false;
+};
+
+class entity_grouping {
+	detail::entity_grouping_id_t id;
+	void *manager = nullptr;
+	void (*destroy_ptr)(entity_grouping *);
+
+	template <typename CTs, typename TTs>
+	static void destroy_impl(entity_grouping *self) {
+		auto em = static_cast<entity_manager<CTs, TTs>*>(self->manager);
+		em->destroy_grouping(self->id);
+	}
+public:
+	entity_grouping() = default;
+
+	template <typename CTs, typename TTs>
+	entity_grouping(entity_manager<CTs, TTs> &em, detail::entity_grouping_id_t id) noexcept
+		: id(id), manager(&em), destroy_ptr(&destroy_impl<CTs, TTs>) {}
+
+	entity_grouping(entity_grouping &&other) noexcept {
+		*this = std::move(other);
+	}
+
+	entity_grouping& operator=(entity_grouping &&other) noexcept {
+		id = other.id;
+		manager = other.manager;
+		destroy_ptr = other.destroy_ptr;
+
+		other.manager = nullptr;
+		return *this;
+	}
+
+	bool is_valid() const {
+		return manager != nullptr;
+	}
+
+	bool destroy() {
+		if (manager) {
+			destroy_ptr(this);
+			manager = nullptr;
+			return true;
+		}
+		return false;
+	}
 };
 }
 

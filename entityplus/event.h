@@ -82,8 +82,7 @@ class entity_event_manager<component_list<Components...>, tag_list<Tags...>> {
 	template <typename...>
 	friend class ::entityplus::event_manager;
 
-	template <typename, typename>
-	friend class ::entityplus::entity_manager;
+	friend class ::entityplus::entity_manager<component_list<Components...>, tag_list<Tags...>>;
 
 	template <typename Event>
 	void broadcast(const Event &event) const {
@@ -170,8 +169,7 @@ class event_manager<component_list<Components...>, tag_list<Tags...>, Events...>
 	template <typename Event>
 	friend class subscriber_handle;
 
-	template <typename, typename>
-	friend class entity_manager;
+	friend class entity_manager<component_list<Components...>, tag_list<Tags...>>;
 
 	detail::subscriber_handle_id_t currentId = 0;
 	std::tuple<detail::event_queue_t<Events>...> eventQueues;

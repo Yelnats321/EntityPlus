@@ -22,6 +22,7 @@ public:
 void entPlusTest(int entityCount, int iterationCount, int tagProb) {
 	using namespace entityplus;
 	entity_manager<component_list<int>, tag_list<struct Tag>> em;
+	em.create_grouping<int, Tag>();
 	std::cout << "EntityPlus\n";
 	{
 		Timer timer("Add entities: ");
