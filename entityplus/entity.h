@@ -111,6 +111,11 @@ public:
 		return entityManager->sync(*this);
 	}
 
+	void destroy() {
+		assert(entityManager);
+		entityManager->destroy_entity(*this);
+	}
+
 	inline bool operator<(const entity &other) const {
 		assert(entityManager && entityManager == other.entityManager);
 		return id < other.id;
@@ -182,6 +187,8 @@ private:
 
 	bool sync(entity_t &entity) const;
 
+	void destroy_entity(const entity_t &entity);
+
 	template <typename... Ts>
 	entity_container& get_smallest_idx();
 public:
@@ -192,7 +199,6 @@ public:
 	entity_manager& operator=(const entity_manager &) = delete;
 
 	entity_t create_entity();
-	void delete_entity(const entity_t &);
 
 	// Gets all entities that have the components and tags provided
 	template<typename... Ts>

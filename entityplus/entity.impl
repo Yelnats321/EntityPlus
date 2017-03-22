@@ -327,7 +327,7 @@ auto ENTITY_MANAGER_SPEC::create_entity() -> entity_t {
 }
 
 ENTITY_MANAGER_TEMPS
-void ENTITY_MANAGER_SPEC::delete_entity(const entity_t &entity) {
+void ENTITY_MANAGER_SPEC::destroy_entity(const entity_t &entity) {
 #if NDEBUG
 	auto &myEnt = *entities.find(entity);
 #else

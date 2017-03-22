@@ -25,7 +25,7 @@ TEST_CASE("entity", "[entity]") {
 		++count;
 	});
 	REQUIRE(count == 1);
-	em.delete_entity(ent);
+	ent.destroy();
 	REQUIRE(ent.get_status() == entity_status::DELETED);
 	REQUIRE(em.get_entities<>().size() == 0);
 
@@ -34,7 +34,7 @@ TEST_CASE("entity", "[entity]") {
 	em2.set_error_callback(error_handler);
 #endif
 	auto foreign = em2.create_entity();
-	REQUIRE_THROWS(em.delete_entity(foreign));
+	REQUIRE_THROWS(ent.destroy());
 }
 
 TEST_CASE("components", "[entity]") {
@@ -290,7 +290,7 @@ TEST_CASE("entity sync", "[entity]") {
 	REQUIRE(ent.sync());
 	REQUIRE(ent.get_status() == entity_status::OK);
 	REQUIRE(copyEnt.get_status() == entity_status::OK);
-	em.delete_entity(ent);
+	ent.destroy();
 	REQUIRE(ent.get_status() == entity_status::DELETED);
 	REQUIRE(copyEnt.get_status() == entity_status::DELETED);
 	REQUIRE(!ent.sync());

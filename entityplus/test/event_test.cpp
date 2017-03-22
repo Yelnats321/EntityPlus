@@ -75,9 +75,9 @@ TEST_CASE("entity event", "[event]") {
 	REQUIRE(ents == 1);
 
 	em.subscribe<entity_deleted<default_entity>>([&](auto) { --ents; });
-	enm.delete_entity(ent1);
+	ent1.destroy();
 	REQUIRE(ents == 0);
-	enm.delete_entity(ent2);
+	ent2.destroy();
 	REQUIRE(ents == -1);
 }
 
@@ -116,10 +116,10 @@ TEST_CASE("component event", "[event]") {
 	REQUIRE(compsAdded == 3);
 	REQUIRE(compsRemoved == 1);
 
-	entMan.delete_entity(ent1);
+	ent1.destroy();
 	REQUIRE(compsAdded == 3);
 	REQUIRE(compsRemoved == 2);
-	entMan.delete_entity(ent2);
+	ent2.destroy();
 	REQUIRE(compsAdded == 3);
 	REQUIRE(compsRemoved == 3);
 }
@@ -158,10 +158,10 @@ TEST_CASE("tag event", "[event]") {
 	REQUIRE(tagsAdded == 3);
 	REQUIRE(tagsRemoved == 1);
 
-	entMan.delete_entity(ent1);
+	ent1.destroy();
 	REQUIRE(tagsAdded == 3);
 	REQUIRE(tagsRemoved == 2);
-	entMan.delete_entity(ent2);
+	ent2.destroy();
 	REQUIRE(tagsAdded == 3);
 	REQUIRE(tagsRemoved == 3);
 }

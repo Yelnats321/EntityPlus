@@ -195,9 +195,10 @@ set_tag = O(n)
 get_component = O(log n)
 get_status = O(log n)
 sync = O(log n)
+destroy = O(n)
 
 Entity Manager:
-(create/delete)_entity = O(n)
+create_entity = O(n)
 get_entities = O(n)
 for_each = O(n)
 ```
@@ -209,7 +210,6 @@ entity_status get_status() const
 ```
 `Returns`: Status of `entity`, one of `OK`, `UNINITIALIZED`, `DELETED`, or `STALE`.
 
-
 ```c++
 template <typename Component>
 bool has_component() const 
@@ -217,7 +217,6 @@ bool has_component() const
 `Returns`: `bool` indicating whether the `entity` has the `Component`. 
 
 `Prerequisites`: `entity` is `OK`.
-
 
 ```c++
 template <typename Component, typename... Args>
@@ -233,7 +232,6 @@ Can invalidate references to all components of type `Component`, as well as a `f
 
 Can turn entity copies `STALE`.
 
-
 ```c++
 template <typename Component>
 bool remove_component()
@@ -246,7 +244,6 @@ Can invalidate references to all components of type `Component`, as well as a `f
 
 Can turn entity copies `STALE`.
 
-
 ```c++
 template <typename Component>
 (const) Component& get_component() (const) 
@@ -257,7 +254,6 @@ template <typename Component>
 
 `Throws`: `bad_entity` if the `entity` is not `OK`. `invalid_component` if the `entity` does not own a `Component`.
 
-
 ```c++
 template <typename Tag>
 bool has_tag() const 
@@ -265,7 +261,6 @@ bool has_tag() const
 `Returns`: `bool` indicating if the `entity` has `Tag`.
 
 `Prerequisites`: `entity` is `OK`.
-
 
 ```c++
 template <typename Tag>
@@ -289,17 +284,8 @@ bool sync()
 
 `Prerequisites`: `entity` is not `UNINITIALIZED`.
 
-### Entity Manager:
 ```c++
-entity_t create_entity()
-```
-`Returns`: `entity_t` that was created.
-
-Can invalidate a `for_each`.
-
-
-```c++
-void delete_entity(const entity_t &entity)
+void destroy()
 ```
 `Prerequisites`: `entity` is `OK`.
 
@@ -309,6 +295,13 @@ Can invalidate a `for_each`.
 
 Turns entity copies 'DELETED'.
 
+### Entity Manager:
+```c++
+entity_t create_entity()
+```
+`Returns`: `entity_t` that was created.
+
+Can invalidate a `for_each`.
 
 ```c++
 template<typename... Ts>
@@ -316,18 +309,15 @@ return_container get_entities()
 ```
 `Returns`: `return_container` of all the entities that have all the components/tags in `Ts...`.
 
-
 ```c++
 template<typename... Ts, typename Func>
 void for_each(Func && func)
 ```
 Calls `func` for each entity that has all the components/tags in `Ts...`. The arguments supplied to `func` are the entity, as well as all the components in `Ts...`.
 
-
 ```c++
 std::size_t get_max_linear_dist() const
 ```
-
 
 ```c++
 void set_max_linear_dist(std::size_t)
@@ -341,10 +331,8 @@ void set_event_manager(const event_manager &)
 void clear_event_manager()
 ```
 
-
 #### `entity` vs `entity_t`
 `entity` is the template class while `entity_t` is the template class with the same template arguments as the `entity_manager`. That is, `entity_t = entity<component_list, tag_list>`.
-
 
 ### Event Manager:
 ```c++
@@ -353,19 +341,16 @@ subscriber_handle<Event> subscribe(Func && func);
 ```
 `Returns`: A `subscriber_handle` for the `func`.
 
-
 ```c++
 template <typename Event>
 void broadcast(const Event &event) const
 ```
-
 
 ### Subscriber Handle
 ```c++
 bool isValid() const
 ```
 `Returns`: `true` if the handle holds onto a subscribed function, `false` otherwise.
-
 
 ```c++
 bool unsubscribe()
