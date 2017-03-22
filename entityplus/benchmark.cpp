@@ -75,8 +75,8 @@ void runTest(int entityCount, int iterationCount, int tagProb) {
 		<< " ItrCount: " << iterationCount
 		<< " TagProb: " << tagProb << "\n";
 	entPlusTest(entityCount, iterationCount, tagProb);
-	std::cout << "\n";
-	entXTest(entityCount, iterationCount, tagProb);
+	//std::cout << "\n";
+	//entXTest(entityCount, iterationCount, tagProb);
 	std::cout << "\n\n";
 }
 

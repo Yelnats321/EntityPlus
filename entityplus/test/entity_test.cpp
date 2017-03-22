@@ -267,3 +267,32 @@ TEST_CASE("entity metafunction", "[entity]") {
 	//em.for_each<int, int>([](auto, auto, auto) {});
 	//em.for_each<>([](auto, auto, auto) {});
 }
+
+TEST_CASE("entity sync", "[entity]") {
+	entity_manager<comps, tags> em;
+	auto ent = em.create_entity();
+	auto copyEnt = ent;
+	REQUIRE(ent.get_status() == entity_status::OK);
+	REQUIRE(copyEnt.get_status() == entity_status::OK);
+	ent.add_component<A>(0);
+	REQUIRE(ent.get_status() == entity_status::OK);
+	REQUIRE(copyEnt.get_status() == entity_status::STALE);
+	REQUIRE(copyEnt.sync());
+	REQUIRE(ent.get_status() == entity_status::OK);
+	REQUIRE(copyEnt.get_status() == entity_status::OK);
+
+	copyEnt.set_tag<TA>(true);
+	REQUIRE(ent.get_status() == entity_status::STALE);
+	REQUIRE(copyEnt.get_status() == entity_status::OK);
+	REQUIRE(copyEnt.sync());
+	REQUIRE(ent.get_status() == entity_status::STALE);
+	REQUIRE(copyEnt.get_status() == entity_status::OK);
+	REQUIRE(ent.sync());
+	REQUIRE(ent.get_status() == entity_status::OK);
+	REQUIRE(copyEnt.get_status() == entity_status::OK);
+	em.delete_entity(ent);
+	REQUIRE(ent.get_status() == entity_status::DELETED);
+	REQUIRE(copyEnt.get_status() == entity_status::DELETED);
+	REQUIRE(!ent.sync());
+	REQUIRE(!copyEnt.sync());
+}

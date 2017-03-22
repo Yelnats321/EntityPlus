@@ -152,7 +152,7 @@ auto ENTITY_MANAGER_SPEC::get_entity_and_status(const entity_t &entity) const ->
 		return{nullptr, entity_status::DELETED};
 
 	if (entity.compTags != local->compTags)
-		return{nullptr, entity_status::STALE};
+		return{&*local, entity_status::STALE};
 
 	return{&*local, entity_status::OK};
 }
@@ -367,7 +367,13 @@ void ENTITY_MANAGER_SPEC::delete_entity(const entity_t &entity) {
 	(void)ers; assert(ers == 1);
 }
 
-
+ENTITY_MANAGER_TEMPS
+bool ENTITY_MANAGER_SPEC::sync(entity_t &entity) const {
+	auto entStatus = get_entity_and_status(entity);
+	if (entStatus.second == entity_status::DELETED) return false;
+	entity = *entStatus.first;
+	return true;
+}
 
 ENTITY_MANAGER_TEMPS
 template <typename... Ts>

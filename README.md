@@ -60,7 +60,16 @@ auto retId = entity.add_component<identity>("John", 25);
 retId.first.name_ = "Smith";
 entity.add_component<health>(100, 100);
 ```
-If we supply a component that wasn't part of the original component list, we will be told this at compile time. In fact, any sort of type mismatch will be presented as a user friendly error when you compile. Adding a component is quite similar to using `map::emplace()`, because the function forwards its args to the constructor and has a similar return semantic. A `pair<component&, bool>` is returned, indicating error or success and the component. The function can fail if a component of that type already exists, in which case the returned `component&` is a reference to the already existing component. Otherwise, the function succeeded and the new component is returned. We don't hold on to the return of `create_entity()` for long. In fact, storing a stale entity is incorrect, as modifying the entity invalidates all references to it. You'll be treated with a runtime error if you use a stale entity.
+If we supply a component that wasn't part of the original component list, we will be told this at compile time. In fact, any sort of type mismatch will be presented as a user friendly error when you compile. Adding a component is quite similar to using `map::emplace()`, because the function forwards its args to the constructor and has a similar return semantic. A `pair<component&, bool>` is returned, indicating error or success and the component. The function can fail if a component of that type already exists, in which case the returned `component&` is a reference to the already existing component. Otherwise, the function succeeded and the new component is returned.
+
+What happens if we create a copy of an entity? Well, since entities are just handles, this copy doesn't represent a new entity but instead refers to the same underlying data that you copied.
+
+```c++
+auto entityCopy = entity;
+assert(entityCopy.get_component<health>() == entity.get_component<health>();
+```
+
+What happens if we modify one copy of the entity? Well, the modified entity is the freshest, and so it is fine, but the old entity is stale. Using a stale entity will give you an error at best, but it can go unnoticed under certain circumstances (if using a release build). You can query the state of an entity with `get_status()`. The 4 statuses are OK, stale, deleted, and uninitialized. To make sure you have the newest version of an entity, you can use `sync()`, which will update your entity to the latest version. If the entity has been deleted, `sync()` will return false.
 
 ### Systems
 The last thing we want to do is manipulate our entities. Unlike some ECS frameworks, EntityPlus doesn't have a system manager or similar device. You can work with the entities in one of two ways. The first is querying for a list of them by type
@@ -185,6 +194,7 @@ has_(component/tag) = O(1)
 set_tag = O(n)
 get_component = O(log n)
 get_status = O(log n)
+sync = O(log n)
 
 Entity Manager:
 (create/delete)_entity = O(n)
@@ -270,6 +280,14 @@ bool set_tag(bool set)
 Can invalidate a `for_each` involving `Tag`, only if `set != set_tag<Tag>(set)`.
 
 Can turn entity copies `STALE`.
+
+```c++
+bool sync()
+```
+
+`Returns`: `true` if the entity is still alive, false otherwise.
+
+`Prerequisites`: `entity` is not `UNINITIALIZED`.
 
 ### Entity Manager:
 ```c++

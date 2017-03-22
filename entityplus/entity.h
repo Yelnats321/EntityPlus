@@ -105,6 +105,12 @@ public:
 	template <typename Tag>
 	bool set_tag(bool set);
 
+	// Updates entity to the stored one, returns false if deleted
+	bool sync() {
+		assert(entityManager);
+		return entityManager->sync(*this);
+	}
+
 	inline bool operator<(const entity &other) const {
 		assert(entityManager && entityManager == other.entityManager);
 		return id < other.id;
@@ -173,6 +179,8 @@ private:
 
 	template <typename T>
 	void remove_bit(entity_t &local, entity_t &foreign);
+
+	bool sync(entity_t &entity) const;
 
 	template <typename... Ts>
 	entity_container& get_smallest_idx();
