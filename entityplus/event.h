@@ -114,8 +114,7 @@ class event_manager;
 template <typename Event>
 class subscriber_handle {
 	detail::subscriber_handle_id_t id;
-	bool valid = false;
-	void *manager;
+	void *manager = nullptr;
 	void (*unsubscribe_ptr)(subscriber_handle *);
 
 	template <typename... Events>
@@ -128,7 +127,7 @@ public:
 
 	template <typename... Events>
 	subscriber_handle(event_manager<Events...> &em, detail::subscriber_handle_id_t id) noexcept
-		: id(id), valid(true), manager(&em), unsubscribe_ptr(&unsubscribe_impl<Events...>) {}
+		: id(id), manager(&em), unsubscribe_ptr(&unsubscribe_impl<Events...>) {}
 
 	subscriber_handle(subscriber_handle &&other) noexcept {
 		*this = std::move(other);
@@ -136,22 +135,21 @@ public:
 
 	subscriber_handle& operator=(subscriber_handle &&other) noexcept {
 		id = other.id;
-		valid = other.valid;
 		manager = other.manager;
 		unsubscribe_ptr = other.unsubscribe_ptr;
 
-		other.valid = false;
+		other.manager = false;
 		return *this;
 	}
 
 	bool is_valid() const {
-		return valid;
+		return manager != nullptr;
 	}
 
 	bool unsubscribe() {
-		if (valid) {
+		if (manager) {
 			unsubscribe_ptr(this);
-			valid = false;
+			manager = nullptr;
 			return true;
 		}
 		return false;
