@@ -468,29 +468,26 @@ template <typename T, typename... Us> struct make_iters<T, meta::typelist<Us...>
 
 template <typename Func, typename Func2, typename T, typename... Ts, std::size_t... Is>
 void deref_and_invoke_impl(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iters,
-						   std::index_sequence<Is...>) {
+						   control_block_t &, std::index_sequence<Is...>,
+						   std::false_type) {
 	(void)func; (void)func2; (void)iters;
 	func(std::forward<T>(t), func2(std::get<Is>(iters))...);
 }
 
-template <typename Func, typename Func2, typename T, typename... Ts>
-void deref_and_invoke(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iters) {
-	deref_and_invoke_impl(std::forward<Func>(func), std::forward<Func2>(func2),
-						  std::forward<T>(t), iters, std::index_sequence_for<Ts...>{});
-}
-
 template <typename Func, typename Func2, typename T, typename... Ts, std::size_t... Is>
 void deref_and_invoke_impl(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iters,
-						   control_block_t &control, std::index_sequence<Is...>) {
+						   control_block_t &control, std::index_sequence<Is...>,
+						   std::true_type) {
 	(void)func; (void)func2; (void)iters; (void)control;
 	func(std::forward<T>(t), func2(std::get<Is>(iters))..., control);
 }
 
-template <typename Func, typename Func2, typename T, typename... Ts>
+template <typename Func, typename Func2, typename T, typename... Ts, typename Cond>
 void deref_and_invoke(Func &&func, Func2 &&func2, T &&t, std::tuple<Ts...> &iters,
-					  control_block_t &control) {
-	deref_and_invoke_impl(std::forward<Func>(func), std::forward<Func2>(func2),
-						  std::forward<T>(t), iters, control, std::index_sequence_for<Ts...>{});
+					  control_block_t &control, Cond cond) {
+	deref_and_invoke_impl(std::forward<Func>(func), std::forward<Func2>(func2), 
+						  std::forward<T>(t), iters, control, 
+						  std::index_sequence_for<Ts...>{}, cond);
 }
 } // namespace detail
 
@@ -529,18 +526,9 @@ void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 						});
 					}
 				});
-				meta::eval_if(
-					[&](auto) {
-						detail::deref_and_invoke(func,
-												 [](auto &iter) -> auto & { return iter.pos->second; },
-												 ent, iters);
-					},
-					meta::fail_cond<IsFuncNoControl>([&](auto) {
-						detail::deref_and_invoke(func,
-												 [](auto &iter) -> auto & { return iter.pos->second; },
-												 ent, iters, control);
-					})
-				);
+				detail::deref_and_invoke(func,
+										 [](auto &iter) -> auto & { return iter.pos->second; },
+										 ent, iters, control, IsFuncWithControl{});
 				if (control.breakout) break;
 			}
 		},
