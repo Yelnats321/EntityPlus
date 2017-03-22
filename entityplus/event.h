@@ -138,7 +138,7 @@ public:
 		manager = other.manager;
 		unsubscribe_ptr = other.unsubscribe_ptr;
 
-		other.manager = false;
+		other.manager = nullptr;
 		return *this;
 	}
 

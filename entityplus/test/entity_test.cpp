@@ -33,8 +33,6 @@ TEST_CASE("entity", "[entity]") {
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
 	em2.set_error_callback(error_handler);
 #endif
-	auto foreign = em2.create_entity();
-	REQUIRE_THROWS(ent.destroy());
 }
 
 TEST_CASE("components", "[entity]") {
