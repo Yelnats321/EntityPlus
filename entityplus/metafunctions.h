@@ -168,7 +168,7 @@ struct typelist_type<0, typelist<T, Ts...>> {
 
 template <std::size_t Idx, typename T, typename... Ts>
 struct typelist_type<Idx, typelist<T, Ts...>> {
-	using type = typename typelist_type<Idx - 1, typelist<T, Ts...>>::type;
+	using type = typename typelist_type<Idx - 1, typelist<Ts...>>::type;
 };
 
 template <std::size_t I, typename T>
