@@ -324,7 +324,7 @@ void clear_event_manager()
 ```
 
 
-####`entity` vs `entity_t`
+#### `entity` vs `entity_t`
 `entity` is the template class while `entity_t` is the template class with the same template arguments as the `entity_manager`. That is, `entity_t = entity<component_list, tag_list>`.
 
 
