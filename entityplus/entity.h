@@ -202,7 +202,7 @@ private:
 	}
 
 	template <typename... Ts>
-	std::pair<entity_container&, bool> get_smallest_idx();
+	std::pair<entity_container&, bool> get_smallest_container();
 public:
 	using return_container = std::vector<entity_t>;
 

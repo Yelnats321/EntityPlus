@@ -410,19 +410,19 @@ auto make_key() {
 
 ENTITY_MANAGER_TEMPS
 template <typename... Ts>
-auto ENTITY_MANAGER_SPEC::get_smallest_idx() -> std::pair<entity_container&, bool> {
+auto ENTITY_MANAGER_SPEC::get_smallest_container() -> std::pair<entity_container&, bool> {
 	if (sizeof...(Ts) == 0) return{entities, true};
 
 	auto key = detail::make_key<meta::typelist<Ts...>, comp_tag_t>();
 	auto & contPair = std::min_element(groupings.begin(), groupings.end(),
 							[&key](const auto &lhs, const auto & rhs) {
-		if ((lhs.second.first & key) == key && (rhs.second.first & key) == key)
+		if ((lhs.second.first & key) == lhs.second.first && (rhs.second.first & key) == rhs.second.first)
 			return lhs.second.second.size() < rhs.second.second.size();
-		if ((lhs.second.first & key) == key && (rhs.second.first & key) != key)
+		if ((lhs.second.first & key) == lhs.second.first && (rhs.second.first & key) != rhs.second.first)
 			return true;
 		return false;
 	})->second;
-	return{contPair.second, (contPair.first&key) == key};
+	return{contPair.second, contPair.first == key};
 }
 
 ENTITY_MANAGER_TEMPS
@@ -434,7 +434,7 @@ auto ENTITY_MANAGER_SPEC::get_entities() -> return_container {
 	using IsTypelistValid = meta::and_all<meta::typelist_has_type<Ts, comp_tag_t>...>;
 	return meta::eval_if(
 		[&](auto) {
-			auto smallest = this->get_smallest_idx<Ts...>();
+			auto smallest = this->get_smallest_container<Ts...>();
 			auto &smallestContainer = smallest.first;
 			if (smallest.second) {
 				return return_container{smallestContainer.begin(), smallestContainer.end()};
@@ -535,14 +535,15 @@ void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 	using IsTypelistValid = meta::and_all<meta::typelist_has_type<Ts, comp_tag_t>...>;
 	meta::eval_if(
 		[&](auto) {
-			auto &smallest = this->get_smallest_idx<Ts...>().first;
-			auto smallestIdxSize = smallest.size();
-			if (smallestIdxSize == 0) return;
-			auto iters = detail::make_iters<component_list_t, ComponentsPart>{}(components, smallestIdxSize, maxLinearSearchDistance);
+			auto smallestData = this->get_smallest_container<Ts...>();
+			auto &smallestContainer = smallestData.first;
+			auto smallestSize = smallestContainer.size();
+			if (smallestSize == 0) return;
+			auto iters = detail::make_iters<component_list_t, ComponentsPart>{}(components, smallestSize, maxLinearSearchDistance);
 			auto key = detail::make_key<Typelist, comp_tag_t>();
 			control_block_t control;
-			for (const auto &ent : smallest) {
-				if ((ent.compTags & key) != key) continue;
+			for (const auto &ent : smallestContainer) {
+				if (!smallestData.second && (ent.compTags & key) != key) continue;
 				meta::for_each(iters, [&](auto &iter, std::size_t, auto) {
 					if (iter.useLinear) {
 						while (iter.pos->first < ent.id) ++iter.pos;

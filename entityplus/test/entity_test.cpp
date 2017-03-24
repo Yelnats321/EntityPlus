@@ -315,3 +315,21 @@ TEST_CASE("entity grouping", "[entity]") {
 
 	ent2.set_tag<TA>(true);
 }
+
+TEST_CASE("entity partial grouping", "[entity]") {
+	entity_manager<comps, tags> em;
+	em.create_grouping<A, B>();
+
+	em.create_entity().add_component<A>(0);
+	em.create_entity().add_component<A>(0);
+	em.create_entity().add_component<A>(0);
+
+	auto abent = em.create_entity();
+	abent.add_component<A>(0);
+	abent.add_component<B>("AB");
+
+	REQUIRE((em.get_entities<A, B>().size() == 1));
+	REQUIRE((em.get_entities<A>().size() == 4));
+	REQUIRE((em.get_entities<B>().size() == 1));
+	REQUIRE((em.get_entities<>().size() == 4));
+}
