@@ -169,6 +169,20 @@ There is currently little tuning available, but additional enhancements are plan
 
 For example, say there are 1000 entities. 500 of these entities have component A, but only 10 have component B. We call `for_each<A,B>`. Since we know the maximum amount of entities we will iterate is 10, we calculate the relative occurrence of these entities in `A`. 500/10 = 50, which means we are likely to iterate over 50 entities in a linear search before we find an entity that has both `A` and `B`. If we had `set_max_linear_dist(55)` then we would do a linear search through the entities that contain `A`. If instead we had `set_max_linear_dist(25)`, we would do a binary search. The default value is 64, and can be queried with `get_max_linear_dist()`.
 
+### Groups
+If you know you will be querying some set of components/tags often, you can register an entity group. This means that under the hood, the entity manager will keep all entities with the components/tags together in a container so that when you need to iterate over the grouping it won't have to generate it on the fly. For example, if you know you will use components `A` and `B` together in a system, you can do this:
+```c++
+entity_grouping groupAB = entityManager.create_grouping<A, B>();
+
+for_each<A,B>(...);
+
+// later
+groupAB.destroy()
+```
+Now whenever you do a `for_each<A,B>()` or a `get_entities<A,B>()` the iterated entities will not have to be built dynamically but are already cached. Additionally, whenever you do a query like `for_each<A,B,C>()` the manager will only iterate through the smallest subset of tags/components it can find, which in this case would be the group `AB`, so you will get performance gains through that as well.
+
+There are already pre-generated groupings for each component and tag, so you cannot create a grouping with an 0 or 1 items (since 0 is just every entity and 1 is just a single component/tag).
+
 ### Benchmarks
 I've benchmarked EntityPlus against EntityX, another ECS library for C++11 on my Lenovo Y-40 which has an i7-4510U @ 2.00 GHz. Compiled using MSVC 2015 update 3 with hotfix on x64. The source for the benchmarks can be viewed [here](entityplus/benchmark.cpp). The time to add the components was very negligible and unlikely to impact performance much in the long run unless you're adding/removing components more than you are iterating over them.
 
@@ -204,7 +218,7 @@ for_each = O(n)
 ```
 
 ## Reference
-### Entity:
+### Entity
 ```c++
 entity_status get_status() const 
 ```
@@ -295,7 +309,10 @@ Can invalidate a `for_each`.
 
 Turns entity copies 'DELETED'.
 
-### Entity Manager:
+#### `entity` vs `entity_t`
+`entity` is the template class while `entity_t` is the template class with the same template arguments as the `entity_manager`. That is, `entity_t = entity<component_list, tag_list>`.
+
+### Entity Manager
 ```c++
 entity_t create_entity()
 ```
@@ -304,13 +321,13 @@ entity_t create_entity()
 Can invalidate a `for_each`.
 
 ```c++
-template<typename... Ts>
+template <typename... Ts>
 return_container get_entities() 
 ```
 `Returns`: `return_container` of all the entities that have all the components/tags in `Ts...`.
 
 ```c++
-template<typename... Ts, typename Func>
+template <typename... Ts, typename Func>
 void for_each(Func && func)
 ```
 Calls `func` for each entity that has all the components/tags in `Ts...`. The arguments supplied to `func` are the entity, as well as all the components in `Ts...`.
@@ -331,10 +348,25 @@ void set_event_manager(const event_manager &)
 void clear_event_manager()
 ```
 
-#### `entity` vs `entity_t`
-`entity` is the template class while `entity_t` is the template class with the same template arguments as the `entity_manager`. That is, `entity_t = entity<component_list, tag_list>`.
+```c++
+template <typename... Ts>
+entity_grouping create_grouping()
+```
+`Returns`: `entity_grouping` of the grouping created.
 
-### Event Manager:
+
+### Entity Grouping
+```c++
+bool is_valid()
+```
+`Returns`: `true` if the entity grouping exists, `false` otherwise.
+
+```c++
+bool destroy()
+```
+`Returns`: `true` if the grouping was destroyed, `false` if the grouping doesn't exist.
+
+### Event Manager
 ```c++
 template <typename Event, typename Func>
 subscriber_handle<Event> subscribe(Func && func);
