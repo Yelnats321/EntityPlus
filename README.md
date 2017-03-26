@@ -215,6 +215,7 @@ Entity Manager:
 create_entity = O(n)
 get_entities = O(n)
 for_each = O(n)
+create_grouping = O(n)
 ```
 
 ## Reference
