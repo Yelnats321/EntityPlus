@@ -333,3 +333,16 @@ TEST_CASE("entity partial grouping", "[entity]") {
 	REQUIRE((em.get_entities<B>().size() == 1));
 	REQUIRE((em.get_entities<>().size() == 4));
 }
+
+TEST_CASE("entity partial grouping superset", "[entity]") {
+	entity_manager<comps, tags> em;
+	em.create_grouping<TA, TB>();
+
+	auto ent1 = em.create_entity();
+	ent1.set_tag<TA>(true);
+	ent1.set_tag<TB>(true);
+	ent1.set_tag<TC>(true);
+	REQUIRE((em.get_entities<TA, TB, TC>().size() == 1));
+	REQUIRE((em.get_entities<TA, TB>().size() == 1));
+	REQUIRE((em.get_entities<TA, TC>().size() == 1));
+}

@@ -175,7 +175,7 @@ private:
 #endif
 
 	template <typename Component, typename... Args>
-	std::pair<Component&, bool> add_component(entity_t &entity, const std::tuple<Args...> &args);
+	std::pair<Component&, bool> add_component(entity_t &entity, std::tuple<Args...> &&args);
 
 	template <typename Component>
 	bool remove_component(entity_t &entity);

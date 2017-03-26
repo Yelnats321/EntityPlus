@@ -41,7 +41,7 @@ std::pair<Component&, bool> ENTITY_SPEC::add_component(Args&&... args) {
 	auto argTuple = std::forward_as_tuple(std::forward<Args>(args)...);
 	return meta::eval_if(
 		[&](auto) { 
-			return entityManager->template add_component<Component>(*this, argTuple); 
+			return entityManager->template add_component<Component>(*this, std::move(argTuple)); 
 		},
 		meta::fail_cond<IsCompValid>([](auto id) {
 			static_assert(id(false), "add_component called with invalid component");
@@ -233,7 +233,7 @@ void ENTITY_MANAGER_SPEC::remove_bit(entity_t &local, entity_t &foreign) {
 ENTITY_MANAGER_TEMPS
 template <typename Component, typename... Args>
 std::pair<Component&, bool> 
-ENTITY_MANAGER_SPEC::add_component(entity_t &entity, const std::tuple<Args...> &args) {
+ENTITY_MANAGER_SPEC::add_component(entity_t &entity, std::tuple<Args...> &&args) {
 #if NDEBUG
 	auto &myEnt = *entities.find(entity);
 #else
@@ -248,7 +248,7 @@ ENTITY_MANAGER_SPEC::add_component(entity_t &entity, const std::tuple<Args...> &
 		return{comp->second, false};
 	}
 
-	auto comp = container.emplace(entity.id, meta::from_tuple<Component>(args));
+	auto comp = container.emplace(std::piecewise_construct, std::make_tuple(entity.id), std::move(args));
 	assert(comp.second);
 
 	add_bit<Component>(myEnt, entity);
