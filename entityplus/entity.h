@@ -84,6 +84,12 @@ public:
 	template <typename Component, typename... Args>
 	std::pair<Component&, bool> add_component(Args&&... args);
 
+	// Adds the component if it doesn't exist, otherwise returns the existing component
+	template <typename Component>
+	auto add_component(Component&& comp) {
+		return add_component<std::decay_t<Component>, Component>(std::forward<Component>(comp));
+	}
+
 	// Returns if the component was removed or not (in the case that it didn't exist)
 	template <typename Component>
 	bool remove_component();

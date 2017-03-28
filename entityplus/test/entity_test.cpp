@@ -346,3 +346,15 @@ TEST_CASE("entity partial grouping superset", "[entity]") {
 	REQUIRE((em.get_entities<TA, TB>().size() == 1));
 	REQUIRE((em.get_entities<TA, TC>().size() == 1));
 }
+
+TEST_CASE("entity copy/move", "[entity]") {
+	entity_manager<comps, tags> em;
+	auto ent1 = em.create_entity();
+	REQUIRE(ent1.add_component(A{3}).second);
+	REQUIRE(ent1.get_component<A>().x == 3);
+	A temp{4};
+	auto ent2 = em.create_entity();
+	REQUIRE(ent2.add_component(temp).second);
+	temp.x = 5;
+	REQUIRE(ent2.get_component<A>().x == 4);
+}

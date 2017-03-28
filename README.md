@@ -58,7 +58,7 @@ You probably want to add those components to the entity.
 ```c++
 auto retId = entity.add_component<identity>("John", 25);
 retId.first.name_ = "Smith";
-entity.add_component<health>(100, 100);
+entity.add_component(health{100, 100});
 ```
 If we supply a component that wasn't part of the original component list, we will be told this at compile time. In fact, any sort of type mismatch will be presented as a user friendly error when you compile. Adding a component is quite similar to using `map::emplace()`, because the function forwards its args to the constructor and has a similar return semantic. A `pair<component&, bool>` is returned, indicating error or success and the component. The function can fail if a component of that type already exists, in which case the returned `component&` is a reference to the already existing component. Otherwise, the function succeeded and the new component is returned.
 
@@ -236,6 +236,9 @@ bool has_component() const
 ```c++
 template <typename Component, typename... Args>
 std::pair<Component&, bool> add_component(Args&&... args)
+
+template <typename Component>
+std::pair<std::decay_t<Component>&, bool> add_component(Component&& comp)
 ```
 `Returns`: `bool` indicating if the `Component` was added. If it was, a reference to the new `Component`. Otherwise, the old `Component`. Does not overwrite old `Component`.
 
