@@ -346,6 +346,25 @@ inline void for_each(const type_bitset<typelist<Ts...>> &tb, Func&& func) {
 	detail::for_each_impl<Offset>(tb, std::forward<Func>(func), std::make_index_sequence<sizeof...(Ts)-Offset>{});
 }
 
+namespace detail {
+template <typename T, typename U>
+struct make_key_impl;
+
+template <typename... Ts, typename... Us>
+struct make_key_impl<typelist<Ts...>, typelist<Us...>> {
+	static auto make() {
+		type_bitset<typelist<Us...>> ret;
+		std::initializer_list<bool> _ = {(get<Ts>(ret) = true)...};
+		return ret;
+	}
+};
+} // namespace detail
+
+template <typename T, typename U>
+auto make_key() {
+	return detail::make_key_impl<T, U>::make();
+}
+
 template <typename T>
 struct type_print;
 }//namespace meta

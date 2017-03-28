@@ -358,3 +358,18 @@ TEST_CASE("entity copy/move", "[entity]") {
 	temp.x = 5;
 	REQUIRE(ent2.get_component<A>().x == 4);
 }
+
+TEST_CASE("create_entity with things", "[entity]") {
+	entity_manager<comps, tags> em;
+	auto ent1 = em.create_entity<TA, TC>(A{2}, C{5, 8});
+	REQUIRE(ent1.has_tag<TA>());
+	REQUIRE(!ent1.has_tag<TB>());
+	REQUIRE(ent1.has_tag<TC>());
+
+	REQUIRE(ent1.has_component<A>());
+	REQUIRE(!ent1.has_component<B>());
+	REQUIRE(ent1.has_component<C>());
+
+	REQUIRE(ent1.get_component<A>().x == 2);
+	REQUIRE(ent1.get_component<C>().get() == 8);
+}

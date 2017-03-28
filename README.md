@@ -40,7 +40,7 @@ Components must have a constructor, so aggregates are not allowed. This restrict
 Entities model something. You can think of them as containers for components. If you want to model a player character, you might want a name, a measurement of their health, and an inventory. To use an entity, we must first create it. However, you can't just create a standalone `entity`, it needs context on where it exists. We use an `entity_manager` to manage all our `entity`s for us.
 ```c++
 using CompList = component_list<identity, health>;
-using TagList = tag_list<>;
+using TagList = tag_list<struct TA, struct TB>;
 entity_manager<CompList, TagList> entityManager;
 using entity_t = typename entity_manager<CompList, TagList>::entity_t;
 ```
@@ -61,6 +61,14 @@ retId.first.name_ = "Smith";
 entity.add_component(health{100, 100});
 ```
 If we supply a component that wasn't part of the original component list, we will be told this at compile time. In fact, any sort of type mismatch will be presented as a user friendly error when you compile. Adding a component is quite similar to using `map::emplace()`, because the function forwards its args to the constructor and has a similar return semantic. A `pair<component&, bool>` is returned, indicating error or success and the component. The function can fail if a component of that type already exists, in which case the returned `component&` is a reference to the already existing component. Otherwise, the function succeeded and the new component is returned.
+
+Sometimes you know all the tags and components you want from the get go. You can create an entity with all these parts just as easily:
+
+```c++
+entity_t ent = entityManager.create_entity<TA>(A{3}, health{100, 200});
+```
+
+The arguments are fully formed components you wish to add to the entity and the template arguments are the tags the entity should have once it's created.
 
 What happens if we create a copy of an entity? Well, since entities are just handles, this copy doesn't represent a new entity but instead refers to the same underlying data that you copied.
 
@@ -318,11 +326,12 @@ Turns entity copies 'DELETED'.
 
 ### Entity Manager
 ```c++
-entity_t create_entity()
+template <typename... Tags, typename... Components>
+entity_t create_entity(Components&&... comps)
 ```
-`Returns`: `entity_t` that was created.
+`Returns`: `entity_t` that was created with the given `Tags` and `Components`.
 
-Can invalidate a `for_each`.
+Can invalidate references to all components of types `Components`, as well as a `for_each` involving `Tags` or `Components`.
 
 ```c++
 template <typename... Ts>

@@ -128,6 +128,31 @@ template <typename... CTs, typename... TTs>
 #define ENTITY_MANAGER_SPEC \
 entity_manager<component_list<CTs...>, tag_list<TTs...>>
 
+namespace detail {
+template <typename... Ts, typename Container, std::size_t... Is>
+void initialize_groupings_impl(flat_map<entity_grouping_id_t,
+	std::pair<meta::type_bitset<meta::typelist<Ts...>>, Container>> &groupings,
+							   std::index_sequence<Is...>) {
+	(void)groupings;
+	std::initializer_list<int> _ =
+	{((void)groupings.emplace(Is,
+							  std::make_pair(meta::make_key<meta::typelist<Ts>, meta::typelist<Ts...>>(),
+											 Container{})),
+	  0)...};
+}
+
+template <typename... Ts, typename Container>
+void initialize_groupings(flat_map<entity_grouping_id_t,
+	std::pair<meta::type_bitset<meta::typelist<Ts...>>, Container>> &groupings) {
+	initialize_groupings_impl(groupings, std::index_sequence_for<Ts...>{});
+}
+} // namespace detail
+
+ENTITY_MANAGER_TEMPS
+ENTITY_MANAGER_SPEC::entity_manager() {
+	detail::initialize_groupings(groupings);
+}
+
 ENTITY_MANAGER_TEMPS
 void ENTITY_MANAGER_SPEC::report_error(error_code_t errCode, const char * msg) const {
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
@@ -329,14 +354,47 @@ bool ENTITY_MANAGER_SPEC::set_tag(entity_t &entity, bool set) {
 }
 
 ENTITY_MANAGER_TEMPS
-auto ENTITY_MANAGER_SPEC::create_entity() -> entity_t {
-	assert(std::numeric_limits<detail::entity_id_t>::max() != currentEntityId);
-	auto emp = entities.emplace(typename entity_t::private_access{}, currentEntityId++, this);
-	assert(emp.second);
+template <typename... Ts, typename... Us>
+auto ENTITY_MANAGER_SPEC::create_entity(Us&&... us) -> entity_t {
+	using AreTagsValid = meta::and_all<meta::typelist_has_type<Ts, tag_t>...>;
+	using AreTagsUnique = meta::is_typelist_unique<meta::typelist<Ts...>>;
 
-	if (eventManager) eventManager->broadcast(entity_created<entity_t>{*emp.first});
+	using AreCompsValid = meta::and_all<meta::typelist_has_type<std::decay_t<Us>, component_t>...>;
+	using AreCompsUnique = meta::is_typelist_unique<meta::typelist<std::decay_t<Us>...>>;
 
-	return *emp.first;
+	return meta::eval_if(
+		[&](auto) {
+			assert(std::numeric_limits<detail::entity_id_t>::max() != currentEntityId);
+			auto emp = entities.emplace(typename entity_t::private_access{}, currentEntityId++, this);
+			assert(emp.second);
+
+			auto &ent = *emp.first;
+
+			if (eventManager) eventManager->broadcast(entity_created<entity_t>{ent});
+
+			this->set_tags<Ts...>(ent, true);
+			this->add_components(ent, decltype(us)(us)...);
+
+			return ent;
+		},
+		meta::fail_cond<AreTagsValid>([](auto id) {
+			static_assert(id(false), "create_entity called with invalid tags");
+			return std::declval<entity_t>();
+		}),
+		meta::fail_cond<AreTagsUnique>([](auto id) {
+			static_assert(id(false), "create_entity called with non-unique tags");
+			return std::declval<entity_t>();
+		}),
+		meta::fail_cond<AreCompsValid>([](auto id) {
+			static_assert(id(false), "create_entity called with invalid components");
+			return std::declval<entity_t>();
+		}),
+		meta::fail_cond<AreCompsUnique>([](auto id) {
+			static_assert(id(false), "create_entity called with non-unique tags");
+			return std::declval<entity_t>();
+		})
+	);
+
 }
 
 ENTITY_MANAGER_TEMPS
@@ -389,31 +447,12 @@ bool ENTITY_MANAGER_SPEC::sync(entity_t &entity) const {
 	return true;
 }
 
-namespace detail {
-template <typename T, typename U>
-struct make_key_impl;
-
-template <typename... Ts, typename... Us>
-struct make_key_impl<meta::typelist<Ts...>, meta::typelist<Us...>> {
-	auto operator()() const {
-		meta::type_bitset<meta::typelist<Us...>> ret;
-		std::initializer_list<bool> _ = {(meta::get<Ts>(ret) = true)...};
-		return ret;
-	}
-};
-
-template <typename T, typename U>
-auto make_key() {
-	return make_key_impl<T, U>{}();
-}
-} // namespace detail
-
 ENTITY_MANAGER_TEMPS
 template <typename... Ts>
 auto ENTITY_MANAGER_SPEC::get_smallest_container() -> std::pair<entity_container&, bool> {
 	if (sizeof...(Ts) == 0) return{entities, true};
 
-	auto key = detail::make_key<meta::typelist<Ts...>, comp_tag_t>();
+	auto key = meta::make_key<meta::typelist<Ts...>, comp_tag_t>();
 	auto & contPair = std::min_element(groupings.begin(), groupings.end(),
 							[&key](const auto &lhs, const auto & rhs) {
 		if ((lhs.second.first & key) == lhs.second.first && (rhs.second.first & key) == rhs.second.first)
@@ -442,7 +481,7 @@ auto ENTITY_MANAGER_SPEC::get_entities() -> return_container {
 			return_container ret;
 			ret.reserve(smallestContainer.size());
 
-			auto key = detail::make_key<Typelist, comp_tag_t>();
+			auto key = meta::make_key<Typelist, comp_tag_t>();
 
 			for (const auto &ent : smallestContainer) {
 				if ((ent.compTags & key) == key)
@@ -540,7 +579,7 @@ void ENTITY_MANAGER_SPEC::for_each(Func && func) {
 			auto smallestSize = smallestContainer.size();
 			if (smallestSize == 0) return;
 			auto iters = detail::make_iters<component_list_t, ComponentsPart>{}(components, smallestSize, maxLinearSearchDistance);
-			auto key = detail::make_key<Typelist, comp_tag_t>();
+			auto key = meta::make_key<Typelist, comp_tag_t>();
 			control_block_t control;
 			for (const auto &ent : smallestContainer) {
 				if (!smallestData.second && (ent.compTags & key) != key) continue;
@@ -584,7 +623,7 @@ entity_grouping ENTITY_MANAGER_SPEC::create_grouping() {
 		[&](auto) {
 			assert(std::numeric_limits<detail::entity_grouping_id_t>::max() != currentGroupingId);
 			auto emp = groupings.emplace(currentGroupingId++, 
-										 std::make_pair(detail::make_key<Typelist, comp_tag_t>(),
+										 std::make_pair(meta::make_key<Typelist, comp_tag_t>(),
 														entity_container::from_sorted_underlying(this->get_entities<Ts...>())));
 			assert(emp.second);
 
@@ -609,31 +648,6 @@ ENTITY_MANAGER_TEMPS
 template <typename... Events>
 void ENTITY_MANAGER_SPEC::set_event_manager(const event_manager<component_list_t, tag_list_t, Events...> &em) {
 	eventManager = &em.get_entity_event_manager();
-}
-
-namespace detail {
-template <typename... Ts, typename Container, std::size_t... Is>
-void initialize_groupings_impl(flat_map<entity_grouping_id_t,
-	std::pair<meta::type_bitset<meta::typelist<Ts...>>, Container>> &groupings,
-							   std::index_sequence<Is...>) {
-	(void)groupings;
-	std::initializer_list<int> _ = 
-	{((void)groupings.emplace(Is,
-							  std::make_pair(make_key<meta::typelist<Ts>, meta::typelist<Ts...>>(),
-											 Container{})),
-	  0)...};
-}
-
-template <typename... Ts, typename Container>
-void initialize_groupings(flat_map<entity_grouping_id_t,
-							  std::pair<meta::type_bitset<meta::typelist<Ts...>>, Container>> &groupings) {
-	initialize_groupings_impl(groupings, std::index_sequence_for<Ts...>{});
-}
-} // namespace detail
-
-ENTITY_MANAGER_TEMPS
-ENTITY_MANAGER_SPEC::entity_manager() {
-	detail::initialize_groupings(groupings);
 }
 
 #undef ENTITY_MANAGER_TEMPS

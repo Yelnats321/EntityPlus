@@ -183,6 +183,14 @@ private:
 	template <typename Component, typename... Args>
 	std::pair<Component&, bool> add_component(entity_t &entity, std::tuple<Args...> &&args);
 
+	template <typename... Ts>
+	void add_components(entity_t &entity, Ts&&... ts) {
+		(void)entity;
+		std::initializer_list<int> _ = 
+		{((void)add_component<std::decay_t<Ts>>
+			(entity, std::forward_as_tuple(std::forward<Ts>(ts))), 0)...};
+	}
+
 	template <typename Component>
 	bool remove_component(entity_t &entity);
 
@@ -191,6 +199,12 @@ private:
 
 	template <typename Tag>
 	bool set_tag(entity_t &entity, bool set);
+
+	template <typename... Ts>
+	void set_tags(entity_t &entity, bool set) {
+		(void)entity; (void)set;
+		std::initializer_list<int> _ = {((void)set_tag<Ts>(entity,set), 0)...};
+	}
 
 	template <typename T>
 	void add_bit(entity_t &local, entity_t &foreign);
@@ -216,7 +230,8 @@ public:
 	entity_manager(const entity_manager &) = delete;
 	entity_manager& operator=(const entity_manager &) = delete;
 
-	entity_t create_entity();
+	template <typename... Ts, typename... Us>
+	entity_t create_entity(Us&&... us);
 
 	// Gets all entities that have the components and tags provided
 	template <typename... Ts>
