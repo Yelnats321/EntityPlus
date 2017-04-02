@@ -22,7 +22,7 @@ struct entity_created {
 };
 
 template <typename Entity>
-struct entity_deleted {
+struct entity_destroyed {
 	Entity entity;
 };
 
@@ -64,13 +64,25 @@ class entity_event_manager;
 template  <typename... Components, typename... Tags>
 class entity_event_manager<component_list<Components...>, tag_list<Tags...>> {
 	using entity_t = entity<component_list<Components...>, tag_list<Tags...>>;
+public:
+	using entity_created_t = entity_created<entity_t>;
+	using entity_destroyed_t = entity_destroyed<entity_t>;
+	template <typename T>
+	using component_added_t = component_added<entity_t, T>;
+	template <typename T>
+	using component_removed_t = component_removed<entity_t, T>;
+	template <typename T>
+	using tag_added_t = tag_added<entity_t, T>;
+	template <typename T>
+	using tag_removed_t = tag_removed<entity_t, T>;
+private:
 	using entity_events_t = meta::typelist<
-		entity_created<entity_t>,
-		entity_deleted<entity_t>,
-		component_added<entity_t, Components>...,
-		component_removed<entity_t, Components>...,
-		tag_added<entity_t, Tags>...,
-		tag_removed<entity_t, Tags>...
+		entity_created_t,
+		entity_destroyed_t,
+		component_added_t<Components>...,
+		component_removed_t<Components>...,
+		tag_added_t<Tags>...,
+		tag_removed_t<Tags>...
 	>;
 
 	static_assert(meta::is_typelist_unique_v<entity_events_t>,
