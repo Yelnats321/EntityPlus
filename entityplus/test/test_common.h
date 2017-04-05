@@ -5,7 +5,7 @@
 
 #pragma once
 #include <catch.hpp>
-#include "../entity.h"
+#include <entityplus/entity.h>
 
 using namespace entityplus;
 

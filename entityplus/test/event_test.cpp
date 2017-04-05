@@ -4,7 +4,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "test_common.h"
-#include "../event.h"
+#include <entityplus/event.h>
 
 using entityplus::event_manager;
 using entityplus::subscriber_handle;

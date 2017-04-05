@@ -4,8 +4,8 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <catch.hpp>
-#include "../metafunctions.h"
-#include "../typelist.h"
+#include <entityplus/metafunctions.h>
+#include <entityplus/typelist.h>
 
 using namespace entityplus::meta;
 

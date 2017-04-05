@@ -5,7 +5,7 @@
 
 #include <catch.hpp>
 
-#include "../container.h"
+#include <entityplus/container.h>
 
 TEST_CASE("simple set", "[flat_set]") {
 	entityplus::flat_set<int> set;
