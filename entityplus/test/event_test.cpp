@@ -74,7 +74,7 @@ TEST_CASE("entity event", "[event]") {
 	auto ent2 = enm.create_entity();
 	REQUIRE(ents == 1);
 
-	em.subscribe<entity_deleted<default_entity>>([&](auto) { --ents; });
+	em.subscribe<entity_destroyed<default_entity>>([&](auto) { --ents; });
 	ent1.destroy();
 	REQUIRE(ents == 0);
 	ent2.destroy();
