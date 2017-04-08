@@ -1,6 +1,6 @@
-set(Catch_DIR "Catch lib directory" CACHE PATH "Path to Catch")
+set(Catch_dir "Catch lib directory" CACHE PATH "Path to Catch")
 add_library(Catch INTERFACE)
-target_include_directories(Catch INTERFACE ${Catch_DIR})
+target_include_directories(Catch INTERFACE ${Catch_dir})
 
 file(GLOB SOURCES "*.cpp")
 
