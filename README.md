@@ -10,6 +10,15 @@ EntityPlus requires C++14 conformance, and was mainly developed on MSVC. It has 
 * Clang 3.5.0
 * GCC 5.3.0
 
+## Building
+Since EntityPlus is header only, there is no need to build the library to use it. Just `#include <entityplus/entity.h>`! However, there are tests and examples you can build with cmake. 
+
+To build the tests, you need to specify the [catch](https://github.com/philsquared/Catch) directory. An in tree build could look like this:
+```
+cmake -D Catch_dir=dir/to/catch ..
+make test
+```
+
 ### Components
 Components contain information. This can be anything, such as health, a piece of armor, or a status effect. An example component could be the identity of a person, which could be modeled like this:
 ```c++
