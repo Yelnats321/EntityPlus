@@ -244,3 +244,7 @@ ModelManifest.xml
 .fake/
 
 *.VC.db
+
+build-clang/
+build-msvc/
+build-gcc/

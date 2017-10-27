@@ -3,73 +3,149 @@
 //    (See accompanying file ../LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-namespace entityplus {
-#define EVENT_MANAGER_TEMPS \
-template <typename... CTs, typename... TTs, typename... Es>
+#include <utility>
 
-#define EVENT_MANAGER_SPEC \
-event_manager<component_list<CTs...>, tag_list<TTs...>, Es...>
+#include "exception.h"
+
+namespace entityplus {
+
+namespace detail {
+#define ENTITY_EVENT_MANAGER_TEMPS template <typename... CTs, typename... TTs>
+#define ENTITY_EVENT_MANAGER_SPEC entity_event_manager<component_list<CTs...>, tag_list<TTs...>>
+
+    ENTITY_EVENT_MANAGER_TEMPS
+    template <typename Event>
+    void ENTITY_EVENT_MANAGER_SPEC::broadcast(const Event& event) const {
+        static_assert(meta::typelist_has_type_v<Event, entity_events_t>,
+                      "broadcast called with invalid event");
+        const auto& cont = std::get<event_map_t<Event>>(eventQueues);
+        for (const auto& [id, func] : cont) {
+            func(event);
+        }
+    }
+
+    ENTITY_EVENT_MANAGER_TEMPS
+    template <typename Event, typename Func>
+    subscriber_handle_id_t ENTITY_EVENT_MANAGER_SPEC::subscribe(Func&& func) {
+        assert(std::numeric_limits<subscriber_handle_id_t>::max() != currentId);
+        auto [itr, emplaced] = std::get<event_map_t<Event>>(eventQueues)
+                                   .try_emplace(currentId++, std::forward<Func>(func));
+        assert(emplaced);
+
+        return itr->first;
+    }
+
+    ENTITY_EVENT_MANAGER_TEMPS
+    template <typename Event>
+    auto ENTITY_EVENT_MANAGER_SPEC::unsubscribe(detail::subscriber_handle_id_t id) {
+        return std::get<event_map_t<Event>>(eventQueues).erase(id);
+    }
+
+#undef ENTITY_EVENT_MANAGER_TEMPS
+#undef ENTITY_EVENT_MANAGER_SPEC
+} // namespace detail
+
+#define EVENT_MANAGER_TEMPS template <typename... CTs, typename... TTs, typename... Es>
+#define EVENT_MANAGER_SPEC event_manager<component_list<CTs...>, tag_list<TTs...>, Es...>
 
 EVENT_MANAGER_TEMPS
 template <typename Event>
 void EVENT_MANAGER_SPEC::unsubscribe(detail::subscriber_handle_id_t id) {
-	using EntityEvent = meta::not_<meta::typelist_has_type<Event, entity_events_t>>;
-	auto er = meta::eval_if(
-		[&](auto ident) {
-			return std::get<detail::event_queue_t<Event>>(ident(eventQueues)).erase(id); 
-		},
-		meta::fail_cond<EntityEvent>([&](auto ident) {
-			return ident(entityEventManager).template unsubscribe<Event>(id);
-		})
-	);
-	(void)er; assert(er == 1);
+    constexpr bool isNativeEvent = meta::typelist_has_type_v<Event, entity_events_t>;
+
+    int er;
+    if constexpr (isNativeEvent) {
+        er = entityEventManager.template unsubscribe<Event>(id);
+    } else {
+        er = std::get<detail::event_map_t<Event>>(eventQueues).erase(id);
+    }
+    assert(er == 1);
+}
+
+EVENT_MANAGER_TEMPS
+const auto& EVENT_MANAGER_SPEC::get_entity_event_manager() const {
+    return entityEventManager;
 }
 
 EVENT_MANAGER_TEMPS
 template <typename Event, typename Func>
-subscriber_handle<Event> EVENT_MANAGER_SPEC::subscribe(Func &&func) {
-	using ValidEvent = meta::typelist_has_type<Event, events_t>;
-	using CanConstruct = std::is_constructible<detail::event_func_t<Event>, Func>;
-	using EntityEvent = meta::not_<meta::typelist_has_type<Event, entity_events_t>>;
-	return meta::eval_if(
-		[&](auto id) {
-			assert(std::numeric_limits<detail::subscriber_handle_id_t>::max() != currentId);
-			auto sub = std::get<detail::event_queue_t<Event>>(id(eventQueues)).emplace(currentId++, std::forward<Func>(func));
-			assert(sub.second);
+subscriber_handle<Event> EVENT_MANAGER_SPEC::subscribe(Func&& func) {
+    constexpr bool isValidEvent = meta::typelist_has_type_v<Event, events_t>;
+    constexpr bool isConstructible = std::is_constructible_v<detail::event_func_t<Event>, Func>;
+    constexpr bool isNativeEvent = meta::typelist_has_type_v<Event, entity_events_t>;
 
-			return subscriber_handle<Event>{*this, sub.first->first};
-		},
-		meta::fail_cond<ValidEvent>([](auto id) {
-			static_assert(id(false), "subscribe called with invalid event");
-			return std::declval<subscriber_handle<Event>>();
-		}),
-		meta::fail_cond<CanConstruct>([](auto id) {
-			static_assert(id(false), "subscribe called with invalid callable");
-			return std::declval<subscriber_handle<Event>>();
-		}),
-		meta::fail_cond<EntityEvent>([&](auto id) {
-			return subscriber_handle<Event>{*this, id(entityEventManager).template subscribe<Event>(std::forward<Func>(func)) };
-		})
-	);
+    ENTITYPLUS_CHECK(isValidEvent, "subscribe called with invalid event")
+    ENTITYPLUS_CHECK_ALSO(isConstructible, "subscribe called with invalid callable")
+    else if constexpr (isNativeEvent) {
+        return {typename subscriber_handle<Event>::private_access{}, *this,
+                entityEventManager.template subscribe<Event>(std::forward<Func>(func))};
+    }
+    else {
+        assert(std::numeric_limits<detail::subscriber_handle_id_t>::max() != currentId);
+        auto [itr, emplaced] = std::get<detail::event_map_t<Event>>(eventQueues)
+                                   .try_emplace(currentId++, std::forward<Func>(func));
+        assert(emplaced);
+
+        return {typename subscriber_handle<Event>::private_access{}, *this, itr->first};
+    }
 }
 
 EVENT_MANAGER_TEMPS
 template <typename Event>
-void EVENT_MANAGER_SPEC::broadcast(const Event &event) const {
-	using ValidEvent = meta::typelist_has_type<Event, custom_events_t>;
-	meta::eval_if(
-		[&](auto) {
-			const auto &cont = std::get<detail::event_queue_t<Event>>(eventQueues);
-			for (const auto &sub : cont) {
-				sub.second(event);
-			}
-		},
-		meta::fail_cond<ValidEvent>([](auto id) {
-			static_assert(id(false), "broadcast called with invalid event");
-		})
-	);
+void EVENT_MANAGER_SPEC::broadcast(const Event& event) const {
+    constexpr bool isValidEvent = meta::typelist_has_type_v<Event, custom_events_t>;
+
+    ENTITYPLUS_CHECK(isValidEvent, "broadcast called with invalid event")
+    else {
+        const auto& container = std::get<detail::event_map_t<Event>>(eventQueues);
+        for (const auto& [id, func] : container) {
+            func(event);
+        }
+    }
 }
 
 #undef EVENT_MANAGER_TEMPS
 #undef EVENT_MANAGER_SPEC
+
+template <typename Event>
+template <typename... Events>
+void subscriber_handle<Event>::unsubscribe_impl(subscriber_handle* self) {
+    auto em = static_cast<event_manager<Events...>*>(self->manager);
+    em->template unsubscribe<Event>(self->id);
 }
+
+template <typename Event>
+template <typename... Events>
+subscriber_handle<Event>::subscriber_handle(private_access, event_manager<Events...>& em,
+                                            detail::subscriber_handle_id_t id) noexcept
+    : id(id), manager(&em), unsubscribe_ptr(&unsubscribe_impl<Events...>) {}
+
+template <typename Event>
+subscriber_handle<Event>::subscriber_handle(subscriber_handle&& other) noexcept {
+    *this = std::move(other);
+}
+
+template <typename Event>
+auto subscriber_handle<Event>::operator=(subscriber_handle&& other) noexcept -> subscriber_handle& {
+    id = other.id;
+    manager = std::exchange(other.manager, nullptr);
+    unsubscribe_ptr = other.unsubscribe_ptr;
+
+    return *this;
+}
+
+template <typename Event>
+bool subscriber_handle<Event>::is_valid() const {
+    return manager != nullptr;
+}
+
+template <typename Event>
+bool subscriber_handle<Event>::unsubscribe() {
+    if (manager) {
+        unsubscribe_ptr(this);
+        manager = nullptr;
+        return true;
+    }
+    return false;
+}
+} // namespace entityplus

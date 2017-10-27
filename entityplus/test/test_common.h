@@ -10,28 +10,29 @@
 using namespace entityplus;
 
 #ifdef ENTITYPLUS_NO_EXCEPTIONS
-inline void error_handler(error_code_t, const char *) {
-	throw "threw";
+inline void error_handler(error_code_t, const char*) {
+    throw "threw";
 }
 #endif
 
 struct A {
-	int x;
-	A(int x): x(x) {}
+    int x;
+    A(int x) : x(x) {}
 };
 
 struct B {
-	std::string name;
-	B(std::string name):name(name) {}
+    std::string name;
+    B(std::string name) : name(name) {}
 };
 
 class C {
-	int x, y;
+    int x, y;
+
 public:
-	C(int x, int y): x(x), y(y) {};
-	int get() {
-		return std::max(x, y);
-	}
+    C(int x, int y) : x(x), y(y){};
+    int get() {
+        return std::max(x, y);
+    }
 };
 
 using default_manager = entity_manager<component_list<>, tag_list<>>;
