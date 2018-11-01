@@ -1,5 +1,5 @@
 # NOTICE:
-This project is currently in the progress of being rewritten for C++17. Check out [this issue](i23) if you have any suggestions/know a good way to transition!
+This project is currently in the progress of being rewritten for C++17. Check out [this issue](../../issues/23) if you have any suggestions/know a good way to transition!
 
 # EntityPlus
 EntityPlus is an Entity Component System library written in C++14, offering fast compilation and runtime speeds. The library is header only, saving you the trouble of fidgeting with build systems and there are no external dependencies.
