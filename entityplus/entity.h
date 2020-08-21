@@ -248,7 +248,7 @@ public:
 	}
 
 	void set_max_linear_dist(std::size_t maxLinearDist) {
-		return maxLinearSearchDistance = maxLinearDist;
+		maxLinearSearchDistance = maxLinearDist;
 	}
 
 	template <typename... Events>
